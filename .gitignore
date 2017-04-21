@@ -1,0 +1,16 @@
+# exclude everything
+checkpoints/*
+decoder_result/*
+result/*
+log/*
+lib/*
+.ipynb_checkpoints/*
+*.log
+.idea/*
+*.ipynb
+*.pyc
+# exception to the rule
+!checkpoints/.gitkeep
+!decoder_result/.gitkeep
+!result/.gitkeep
+!log/.gitkeep

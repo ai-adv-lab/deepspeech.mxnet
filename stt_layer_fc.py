@@ -38,7 +38,7 @@ def sequence_fc(net,
                 prefix,
                 num_hidden_list=[],
                 act_type_list=[],
-                batchnorm_yn=False
+                is_batchnorm=False
                 ):
     if num_layer == len(num_hidden_list) == len(act_type_list):
         if num_layer > 0:
@@ -48,12 +48,12 @@ def sequence_fc(net,
             for layer_index in range(num_layer):
                 weight_list.append(mx.sym.Variable(name='%s_sequence_fc%d_weight' % (prefix, layer_index)))
                 # if you use batchnorm bias do not have any effect
-                if not batchnorm_yn:
+                if not is_batchnorm:
                     bias_list.append(mx.sym.Variable(name='%s_sequence_fc%d_bias' % (prefix, layer_index)))
             # batch normalization parameters
             gamma_list = []
             beta_list = []
-            if batchnorm_yn:
+            if is_batchnorm:
                 for layer_index in range(num_layer):
                     gamma_list.append(mx.sym.Variable(name='%s_sequence_fc%d_gamma' % (prefix, layer_index)))
                     beta_list.append(mx.sym.Variable(name='%s_sequence_fc%d_beta' % (prefix, layer_index)))
@@ -70,12 +70,12 @@ def sequence_fc(net,
             for seq_index in range(seq_len):
                 for layer_index in range(num_layer):
                     hidden = net[seq_index]
-                    if batchnorm_yn:
+                    if is_batchnorm:
                         hidden = fc(net=hidden,
                                     num_hidden=num_hidden_list[layer_index],
                                     act_type=act_type_list[layer_index],
                                     weight=weight_list[layer_index],
-                                    no_bias=batchnorm_yn
+                                    no_bias=is_batchnorm
                                     )
                         # last layer doesn't have batchnorm
                         if layer_index < num_layer - 1:

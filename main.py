@@ -67,15 +67,16 @@ def load_data(args):
         datagen.load_validation_data(val_json)
 
         if mode == "train":
-            datagen.sample_nomalize(2, True)
+            normalize_target_k = args.config.get('train', 'normalize_target_k')
+            datagen.sample_normalize(normalize_target_k, True)
         elif mode == "load":
             # get feat_mean and feat_std to normalize dataset
             datagen.get_meta_from_file(np.loadtxt(generate_file_path(save_dir, model_name, 'feats_mean')),
                                        np.loadtxt(generate_file_path(save_dir, model_name, 'feats_std')))
 
-    batchnorm_yn = args.config.getboolean('arch', 'batchnorm_yn')
-    if batch_size == 1 and batchnorm_yn:
-        raise Warning('batch size 1 is too small for batchnorm_yn')
+    is_batchnorm = args.config.getboolean('arch', 'is_batchnorm')
+    if batch_size == 1 and is_batchnorm:
+        raise Warning('batch size 1 is too small for is_batchnorm')
 
     # sort file paths by its duration in ascending order to implement sortaGrad
 
@@ -171,14 +172,13 @@ if __name__ == '__main__':
     language = args.config.get('data', 'language')
     labelUtil = LabelUtil.getInstance()
     if language == "en":
-        labelUtil.loadUnicodeSet("resources/unicodemap_en_baidu.csv")
+        labelUtil.load_unicode_set("resources/unicodemap_en_baidu.csv")
     else:
         raise Exception("Error: Language Type: %s" % language)
-    args.config.set('arch', 'n_classes', str(labelUtil.getCount()))
+    args.config.set('arch', 'n_classes', str(labelUtil.get_count()))
 
     contexts = parse_contexts(args)
     num_gpu = len(contexts)
-    training_method = args.config.get('train', 'method')
     batch_size = args.config.getint('common', 'batch_size')
 
     # check the number of gpus is positive divisor of the batch size
@@ -204,10 +204,10 @@ if __name__ == '__main__':
         data_names = [x[0] for x in data_train.provide_data]
         label_names = [x[0] for x in data_train.provide_label]
         module = mx.mod.Module(model_loaded, context=contexts, data_names=data_names, label_names=label_names)
-        do_training(training_method, args, module, data_train, data_val)
+        do_training(args=args, module=module, data_train=data_train, data_val=data_val)
     # if mode is 'load', it loads model from the checkpoint and continues the training.
     elif mode == 'load':
-        do_training(training_method, args, model_loaded, data_train, data_val, model_num_epoch)
+        do_training(args=args, module=model_loaded, data_train=data_train, data_val=data_val, begin_epoch=model_num_epoch)
     # if mode is 'predict', it predict label from the input by the input model
     elif mode == 'predict':
         # predict through data

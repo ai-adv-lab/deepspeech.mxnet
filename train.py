@@ -45,7 +45,7 @@ def get_initializer(args):
     return init_type(init_scale)
 
 
-def do_training(training_method, args, module, data_train, data_val, begin_epoch=0):
+def do_training(args, module, data_train, data_val, begin_epoch=0):
     from distutils.dir_util import mkpath
     from log_util import LogUtil
 
@@ -55,13 +55,10 @@ def do_training(training_method, args, module, data_train, data_val, begin_epoch
     seq_len = args.config.get('arch', 'max_t_count')
     batch_size = args.config.getint('common', 'batch_size')
     save_checkpoint_every_n_epoch = args.config.getint('common', 'save_checkpoint_every_n_epoch')
-    batch_end_callbacks = [mx.callback.Speedometer(batch_size,
-                                                   args.config.getint('train', 'show_every'))]
 
     contexts = parse_contexts(args)
     num_gpu = len(contexts)
     eval_metric = STTMetric(batch_size=batch_size, num_gpu=num_gpu, seq_length=seq_len)
-    # loss_metric = STTMetric(batch_size=batch_size, num_gpu=num_gpu, seq_length=seq_len, epoch_end_yn=True)
 
     optimizer = args.config.get('train', 'optimizer')
     momentum = args.config.getfloat('train', 'momentum')
@@ -70,17 +67,12 @@ def do_training(training_method, args, module, data_train, data_val, begin_epoch
 
     n_epoch = begin_epoch
     num_epoch = args.config.getint('train', 'num_epoch')
-    #decay_factor = args.config.getfloat('train', 'decay_factor')
-    #decay_bound = args.config.getfloat('train', 'decay_lower_bound')
     clip_gradient = args.config.getfloat('train', 'clip_gradient')
     weight_decay = args.config.getfloat('train', 'weight_decay')
     save_optimizer_states = args.config.getboolean('train', 'save_optimizer_states')
 
     if clip_gradient == 0:
         clip_gradient = None
-
-    last_acc = -float("Inf")
-    last_params = None
 
     module.bind(data_shapes=data_train.provide_data,
                 label_shapes=data_train.provide_label,
@@ -90,23 +82,11 @@ def do_training(training_method, args, module, data_train, data_val, begin_epoch
         module.init_params(initializer=get_initializer(args))
 
     def reset_optimizer():
-        if optimizer == "sgd":
-            module.init_optimizer(kvstore='device',
-                                  optimizer=args.config.get('train', 'optimizer'),
-                                  optimizer_params={'lr_scheduler': lr_scheduler,
-                                                    'momentum': momentum,
-                                                    'rescale_grad': 1.0,
-                                                    'clip_gradient': clip_gradient,
-                                                    'wd': weight_decay},
-                                  force_init=True)
-        else:
-            module.init_optimizer(kvstore='device',
-                                  optimizer=args.config.get('train', 'optimizer'),
-                                  optimizer_params={'lr_scheduler': lr_scheduler,
-                                                    'rescale_grad': 1.0,
-                                                    'clip_gradient': clip_gradient,
-                                                    'wd': weight_decay},
-                                  force_init=True)
+        module.init_optimizer(kvstore='device',
+                              optimizer=args.config.get('train', 'optimizer'),
+                              optimizer_params={'clip_gradient': clip_gradient,
+                                                'wd': weight_decay},
+                              force_init=True)
 
     reset_optimizer()
 
@@ -116,7 +96,7 @@ def do_training(training_method, args, module, data_train, data_val, begin_epoch
             break
 
         eval_metric.reset()
-
+        log.info('---------train---------')
         for nbatch, data_batch in enumerate(data_train):
 
             if data_batch.effective_sample_count is not None:
@@ -125,21 +105,14 @@ def do_training(training_method, args, module, data_train, data_val, begin_epoch
             module.forward_backward(data_batch)
             module.update()
             module.update_metric(eval_metric, data_batch.label)
+        # commented for Libri_sample data set to see only train cer
+        # log.info('---------validation---------')
+        # module.score(eval_data=data_val, num_batch=None, eval_metric=eval_metric, reset=True)
 
         data_train.reset()
-
-        # test on eval data
-        # score_with_state_forwarding(module, data_val, loss_metric)
-
-        # total_cer, total_n_label, total_l_dist, total_ctc_loss = loss_metric.get_name_value()
-        # log.info("Epoch[%d] total cer=%f (%d / %d),  total ctc loss=%f", n_epoch, total_cer, int(total_n_label - total_l_dist), total_n_label, total_ctc_loss)
-        # curr_acc = total_cer
-        #
-        # assert curr_acc is not None, 'cannot find Acc_exclude_padding in eval metric'
-
         # save checkpoints
         if n_epoch % save_checkpoint_every_n_epoch == 0:
-            log.info('SAVE CHECKPOINT')
+            log.info('Epoch[%d] SAVE CHECKPOINT', n_epoch)
             module.save_checkpoint(prefix=get_checkpoint_path(args), epoch=n_epoch, save_optimizer_states=save_optimizer_states)
 
         n_epoch += 1

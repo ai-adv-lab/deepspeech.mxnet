@@ -15,11 +15,7 @@ class LabelUtil:
         self._log = LogUtil().getlogger()
         self._log.debug("LabelUtil init")
 
-    def __call__(self):
-        print
-        "called"
-
-    def loadUnicodeSet(self, unicodeFilePath):
+    def load_unicode_set(self, unicodeFilePath):
         self.byChar = {}
         self.byIndex = {}
         self.unicodeFilePath = unicodeFilePath
@@ -33,7 +29,7 @@ class LabelUtil:
                 self.byIndex[int(r[1])] = r[0]
                 self.count += 1
 
-    def toUnicode(self, src, index):
+    def to_unicode(self, src, index):
         # 1 byte
         code1 = int(ord(src[index + 0]))
 
@@ -43,13 +39,13 @@ class LabelUtil:
 
         return result, index
 
-    def convertWordToGrapheme(self, label):
+    def convert_word_to_grapheme(self, label):
 
         result = []
 
         index = 0
         while index < len(label):
-            (code, nextIndex) = self.toUnicode(label, index)
+            (code, nextIndex) = self.to_unicode(label, index)
 
             result.append(label[index])
 
@@ -57,21 +53,21 @@ class LabelUtil:
 
         return result, "".join(result)
 
-    def convertWordToNum(self, word):
+    def convert_word_to_num(self, word):
         try:
-            labelList, _ = self.convertWordToGrapheme(word)
+            label_list, _ = self.convert_word_to_grapheme(word)
 
-            labelNum = []
+            label_num = []
 
-            for char in labelList:
+            for char in label_list:
                 # skip word
                 if char == "":
                     pass
                 else:
-                    labelNum.append(int(self.byChar[char]))
+                    label_num.append(int(self.byChar[char]))
 
             # tuple typecast: read only, faster
-            return tuple(labelNum)
+            return tuple(label_num)
 
         except AttributeError:
             self._log.error("unicodeSet is not loaded")
@@ -81,13 +77,13 @@ class LabelUtil:
             self._log.error("unicodeSet Key not found: %s" % err)
             exit(-1)
 
-    def convertNumToWord(self, numList):
+    def convert_num_to_word(self, num_list):
         try:
-            labelList = []
-            for num in numList:
-                labelList.append(self.byIndex[num])
+            label_list = []
+            for num in num_list:
+                label_list.append(self.byIndex[num])
 
-            return ''.join(labelList)
+            return ''.join(label_list)
 
         except AttributeError:
             self._log.error("unicodeSet is not loaded")
@@ -97,7 +93,7 @@ class LabelUtil:
             self._log.error("unicodeSet Key not found: %s" % err)
             exit(-1)
 
-    def getCount(self):
+    def get_count(self):
         try:
             return self.count
 
@@ -105,7 +101,7 @@ class LabelUtil:
             self._log.error("unicodeSet is not loaded")
             exit(-1)
 
-    def getUnicodeFilePath(self):
+    def get_unicode_file_path(self):
         try:
             return self.unicodeFilePath
 
@@ -113,8 +109,8 @@ class LabelUtil:
             self._log.error("unicodeSet is not loaded")
             exit(-1)
 
-    def getBlankIndex(self):
+    def get_blank_index(self):
         return self.byChar["-"]
 
-    def getSpaceIndex(self):
+    def get_space_index(self):
         return self.byChar["$"]

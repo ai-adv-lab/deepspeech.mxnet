@@ -87,12 +87,12 @@ class STTIter(mx.io.DataIter):
                 audio_paths.append(audio_path)
                 texts.append(text)
             if self.is_first_epoch:
-                train_data_set = self.datagen.prepare_minibatch(audio_paths, texts, overwrite_yn=True)
+                data_set = self.datagen.prepare_minibatch(audio_paths, texts, overwrite=True)
             else:
-                train_data_set = self.datagen.prepare_minibatch(audio_paths, texts, overwrite_yn=False)
+                data_set = self.datagen.prepare_minibatch(audio_paths, texts, overwrite=False)
 
-            data_all = [mx.nd.array(train_data_set['x'])] + self.init_state_arrays
-            label_all = [mx.nd.array(train_data_set['y'])]
+            data_all = [mx.nd.array(data_set['x'])] + self.init_state_arrays
+            label_all = [mx.nd.array(data_set['y'])]
             data_names = ['data'] + init_state_names
             label_names = ['label']
 

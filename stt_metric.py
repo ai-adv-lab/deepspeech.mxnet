@@ -19,7 +19,7 @@ def check_label_shapes(labels, preds, shape=0):
 
 
 class STTMetric(mx.metric.EvalMetric):
-    def __init__(self, batch_size, num_gpu, seq_length, epoch_end_yn=False):
+    def __init__(self, batch_size, num_gpu, seq_length, is_epoch_end=False):
         super(STTMetric, self).__init__('STTMetric')
 
         self.batch_size = batch_size
@@ -27,7 +27,7 @@ class STTMetric(mx.metric.EvalMetric):
         self.seq_length = seq_length
         self.total_n_label = 0
         self.total_l_dist = 0
-        self.epoch_end_yn = epoch_end_yn
+        self.is_epoch_end = is_epoch_end
         self.total_ctc_loss = 0.
 
     def update(self, labels, preds):
@@ -52,12 +52,12 @@ class STTMetric(mx.metric.EvalMetric):
                 self.total_n_label += len(l)
                 self.total_l_dist += l_distance
                 this_cer = float(l_distance) / float(len(l))
-                log.info("label: %s " % (labelUtil.convertNumToWord(l)))
+                log.info("label: %s " % (labelUtil.convert_num_to_word(l)))
                 log.info("pred : %s , cer: %f (distance: %d/ label length: %d)" % (
-                labelUtil.convertNumToWord(p), this_cer, l_distance, len(l)))
+                    labelUtil.convert_num_to_word(p), this_cer, l_distance, len(l)))
                 self.num_inst += 1
                 self.sum_metric += this_cer
-            if self.epoch_end_yn:
+            if self.is_epoch_end:
                 loss = ctc_loss(l, pred, i, int(self.seq_length), int(self.batch_size), int(self.num_gpu))
                 self.total_ctc_loss += loss
                 log.info("loss: %f " % loss)
@@ -100,7 +100,7 @@ def remove_space(l):
     labelUtil = LabelUtil.getInstance()
     ret = []
     for i in range(len(l)):
-        if l[i] != labelUtil.getSpaceIndex():
+        if l[i] != labelUtil.get_space_index():
             ret.append(l[i])
     return ret
 

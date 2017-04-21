@@ -62,8 +62,7 @@ def arch(args):
     num_rnn_layer = args.config.getint("arch", "num_rnn_layer")
     num_hidden_rnn_list = json.loads(args.config.get("arch", "num_hidden_rnn_list"))
 
-    batch_size = args.config.getint("common", "batch_size")
-    batchnorm_yn = args.config.getboolean("arch", "batchnorm_yn")
+    is_batchnorm = args.config.getboolean("arch", "is_batchnorm")
 
     seq_len = args.config.getint('arch', 'max_t_count')
     num_label = args.config.getint('arch', 'max_label_length')
@@ -71,22 +70,6 @@ def arch(args):
     num_rear_fc_layers = args.config.getint("arch", "num_rear_fc_layers")
     num_hidden_rear_fc_list = json.loads(args.config.get("arch", "num_hidden_rear_fc_list"))
     act_type_rear_fc_list = json.loads(args.config.get("arch", "act_type_rear_fc_list"))
-
-    if rnn_type == "bilstm":
-        init_c = [('l%d_init_c' % l, (batch_size, num_hidden_rnn_list[int(l / 2)])) for l in
-                  range(2 * num_rnn_layer)]
-        init_h = [('l%d_init_h' % l, (batch_size, num_hidden_rnn_list[int(l / 2)])) for l in
-                  range(2 * num_rnn_layer)]
-        init_states = init_c + init_h
-    elif rnn_type == "bigru":
-        init_h = [('l%d_init_h' % l, (batch_size, num_hidden_rnn_list[int(l / 2)])) for l in
-                  range(2 * num_rnn_layer)]
-        init_states = init_h
-    elif rnn_type == "gru":
-        init_h = [('l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l])) for l in range(num_rnn_layer)]
-        init_states = init_h
-    else:
-        raise Exception("network type should be one of the followings: bilstm,gru,bigru")
     # model symbol generation
     # input preparation
     data = mx.sym.Variable('data')
@@ -97,9 +80,9 @@ def arch(args):
                channels=channel_num,
                filter_dimension=conv_layer1_filter_dim,
                stride=conv_layer1_stride,
-               no_bias=batchnorm_yn
+               no_bias=is_batchnorm
                )
-    if batchnorm_yn:
+    if is_batchnorm:
         # batch norm normalizes axis 1
         net = batchnorm(net)
 
@@ -107,9 +90,9 @@ def arch(args):
                channels=channel_num,
                filter_dimension=conv_layer2_filter_dim,
                stride=conv_layer2_stride,
-               no_bias=batchnorm_yn
+               no_bias=is_batchnorm
                )
-    if batchnorm_yn:
+    if is_batchnorm:
         # batch norm normalizes axis 1
         net = batchnorm(net)
     net = mx.sym.transpose(data=net, axes=(0, 2, 1, 3))
@@ -125,29 +108,29 @@ def arch(args):
                              num_hidden_lstm_list=num_hidden_rnn_list,
                              num_lstm_layer=num_rnn_layer,
                              dropout=0.,
-                             batchnorm_yn=batchnorm_yn)
+                             is_batchnorm=is_batchnorm)
     elif rnn_type == "gru":
         net = gru_unroll(net=net,
                          seq_len=seq_len_after_conv_layer2,
                          num_hidden_gru_list=num_hidden_rnn_list,
                          num_gru_layer=num_rnn_layer,
                          dropout=0.,
-                         batchnorm_yn=batchnorm_yn)
+                         is_batchnorm=is_batchnorm)
     elif rnn_type == "bigru":
         net = bi_gru_unroll(net=net,
                             seq_len=seq_len_after_conv_layer2,
                             num_hidden_gru_list=num_hidden_rnn_list,
                             num_gru_layer=num_rnn_layer,
                             dropout=0.,
-                            batchnorm_yn=batchnorm_yn)
+                            is_batchnorm=is_batchnorm)
     else:
         raise Exception('rnn_type should be one of the followings, bilstm,gru,bigru')
 
     # rear fc layers
     net = sequence_fc(net=net, seq_len=seq_len_after_conv_layer2, num_layer=num_rear_fc_layers, prefix="rear",
                       num_hidden_list=num_hidden_rear_fc_list, act_type_list=act_type_rear_fc_list,
-                      batchnorm_yn=batchnorm_yn)
-    if batchnorm_yn:
+                      is_batchnorm=is_batchnorm)
+    if is_batchnorm:
         hidden_all = []
         # batch norm normalizes axis 1
         for seq_index in range(seq_len_after_conv_layer2):

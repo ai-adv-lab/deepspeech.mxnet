@@ -16,14 +16,14 @@ LSTMModel = namedtuple("LSTMModel", ["rnn_exec", "symbol",
                                      "param_blocks"])
 
 
-def vanilla_lstm(num_hidden, indata, prev_state, param, seqidx, layeridx, batchnorm_yn=False, gamma=None, beta=None):
+def vanilla_lstm(num_hidden, indata, prev_state, param, seqidx, layeridx, is_batchnorm=False, gamma=None, beta=None):
     """LSTM Cell symbol"""
     i2h = mx.sym.FullyConnected(data=indata,
                                 weight=param.i2h_weight,
                                 bias=param.i2h_bias,
                                 num_hidden=num_hidden * 4,
                                 name="t%d_l%d_i2h" % (seqidx, layeridx))
-    if batchnorm_yn:
+    if is_batchnorm:
         i2h = batchnorm(net=i2h, gamma=gamma, beta=beta)
     h2h = mx.sym.FullyConnected(data=prev_state.h,
                                 weight=param.h2h_weight,
@@ -42,7 +42,7 @@ def vanilla_lstm(num_hidden, indata, prev_state, param, seqidx, layeridx, batchn
     return LSTMState(c=next_c, h=next_h)
 
 
-def lstm(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., num_hidden_proj=0, batchnorm_yn=False,
+def lstm(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., num_hidden_proj=0, is_batchnorm=False,
          gamma=None, beta=None):
     """LSTM Cell symbol"""
     # dropout input
@@ -54,7 +54,7 @@ def lstm(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., nu
                                 bias=param.i2h_bias,
                                 num_hidden=num_hidden * 4,
                                 name="t%d_l%d_i2h" % (seqidx, layeridx))
-    if batchnorm_yn:
+    if is_batchnorm:
         i2h = batchnorm(net=i2h, gamma=gamma, beta=beta)
 
     h2h = mx.sym.FullyConnected(data=prev_state.h,
@@ -96,7 +96,7 @@ def lstm(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., nu
 
 
 def lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0., num_hidden_proj=0,
-                lstm_type='fc_lstm', batchnorm_yn=False, prefix="", direction="forward"):
+                lstm_type='fc_lstm', is_batchnorm=False, prefix="", direction="forward"):
     if num_lstm_layer > 0:
         param_cells = []
         last_states = []
@@ -118,7 +118,7 @@ def lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0., 
             last_states.append(state)
         assert (len(last_states) == num_lstm_layer)
         # declare batchnorm param(gamma,beta) in timestep wise
-        if batchnorm_yn:
+        if is_batchnorm:
             batchnorm_gamma = []
             batchnorm_beta = []
             for seqidx in range(seq_len):
@@ -144,7 +144,7 @@ def lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0., 
                     dp = dropout
 
                 if lstm_type == 'fc_lstm':
-                    if batchnorm_yn:
+                    if is_batchnorm:
                         next_state = lstm(num_hidden_lstm_list[i],
                                           indata=hidden,
                                           prev_state=last_states[i],
@@ -153,7 +153,7 @@ def lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0., 
                                           layeridx=i,
                                           dropout=dp,
                                           num_hidden_proj=num_hidden_proj,
-                                          batchnorm_yn=batchnorm_yn,
+                                          is_batchnorm=is_batchnorm,
                                           gamma=batchnorm_gamma[k],
                                           beta=batchnorm_beta[k]
                                           )
@@ -166,15 +166,15 @@ def lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0., 
                                           layeridx=i,
                                           dropout=dp,
                                           num_hidden_proj=num_hidden_proj,
-                                          batchnorm_yn=batchnorm_yn
+                                          is_batchnorm=is_batchnorm
                                           )
                 elif lstm_type == 'vanilla_lstm':
-                    if batchnorm_yn:
+                    if is_batchnorm:
                         next_state = vanilla_lstm(num_hidden_lstm_list[i], indata=hidden,
                                                   prev_state=last_states[i],
                                                   param=param_cells[i],
                                                   seqidx=k, layeridx=i,
-                                                  batchnorm_yn=batchnorm_yn,
+                                                  is_batchnorm=is_batchnorm,
                                                   gamma=batchnorm_gamma[k],
                                                   beta=batchnorm_beta[k]
                                                   )
@@ -183,7 +183,7 @@ def lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0., 
                                                   prev_state=last_states[i],
                                                   param=param_cells[i],
                                                   seqidx=k, layeridx=i,
-                                                  batchnorm_yn=batchnorm_yn
+                                                  is_batchnorm=is_batchnorm
                                                   )
                 else:
                     raise Exception("lstm type %s error" % lstm_type)
@@ -206,7 +206,7 @@ def lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0., 
 
 
 def bi_lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0., num_hidden_proj=0,
-                   lstm_type='fc_lstm', batchnorm_yn=False):
+                   lstm_type='fc_lstm', is_batchnorm=False):
     if num_lstm_layer > 0:
         net_forward = lstm_unroll(net=net,
                                   num_lstm_layer=num_lstm_layer,
@@ -215,7 +215,7 @@ def bi_lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0
                                   dropout=dropout,
                                   num_hidden_proj=num_hidden_proj,
                                   lstm_type=lstm_type,
-                                  batchnorm_yn=batchnorm_yn,
+                                  is_batchnorm=is_batchnorm,
                                   prefix="forward_",
                                   direction="forward")
 
@@ -226,7 +226,7 @@ def bi_lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0
                                    dropout=dropout,
                                    num_hidden_proj=num_hidden_proj,
                                    lstm_type=lstm_type,
-                                   batchnorm_yn=batchnorm_yn,
+                                   is_batchnorm=is_batchnorm,
                                    prefix="backward_",
                                    direction="backward")
         hidden_all = []
@@ -239,7 +239,7 @@ def bi_lstm_unroll(net, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0
 # bilistm_2to1
 def bi_lstm_unroll_two_input_two_output(net1, net2, num_lstm_layer, seq_len, num_hidden_lstm_list, dropout=0.,
                                         num_hidden_proj=0,
-                                        lstm_type='fc_lstm', batchnorm_yn=False):
+                                        lstm_type='fc_lstm', is_batchnorm=False):
     if num_lstm_layer > 0:
         net_forward = lstm_unroll(net=net1,
                                   num_lstm_layer=num_lstm_layer,
@@ -248,7 +248,7 @@ def bi_lstm_unroll_two_input_two_output(net1, net2, num_lstm_layer, seq_len, num
                                   dropout=dropout,
                                   num_hidden_proj=num_hidden_proj,
                                   lstm_type=lstm_type,
-                                  batchnorm_yn=batchnorm_yn,
+                                  is_batchnorm=is_batchnorm,
                                   prefix="forward_",
                                   direction="forward")
 
@@ -259,7 +259,7 @@ def bi_lstm_unroll_two_input_two_output(net1, net2, num_lstm_layer, seq_len, num
                                    dropout=dropout,
                                    num_hidden_proj=num_hidden_proj,
                                    lstm_type=lstm_type,
-                                   batchnorm_yn=batchnorm_yn,
+                                   is_batchnorm=is_batchnorm,
                                    prefix="backward_",
                                    direction="backward")
         return net_forward, net_backward

@@ -15,7 +15,7 @@ GRUModel = namedtuple("GRUModel", ["rnn_exec", "symbol",
                                    "param_blocks"])
 
 
-def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., batchnorm_yn=False, gamma=None, beta=None):
+def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., is_batchnorm=False, gamma=None, beta=None):
     """
     GRU Cell symbol
     Reference:
@@ -30,7 +30,7 @@ def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., bat
                                 num_hidden=num_hidden * 2,
                                 name="t%d_l%d_gates_i2h" % (seqidx, layeridx))
 
-    if batchnorm_yn:
+    if is_batchnorm:
         i2h = batchnorm(net=i2h, gamma=gamma, beta=beta)
     h2h = mx.sym.FullyConnected(data=prev_state.h,
                                 weight=param.gates_h2h_weight,
@@ -60,7 +60,7 @@ def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., bat
     return GRUState(h=next_h)
 
 
-def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., batchnorm_yn=False, prefix="",
+def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_batchnorm=False, prefix="",
                direction="forward"):
     if num_gru_layer > 0:
         param_cells = []
@@ -78,7 +78,7 @@ def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., bat
             last_states.append(state)
         assert (len(last_states) == num_gru_layer)
         # declare batchnorm param(gamma,beta) in timestep wise
-        if batchnorm_yn:
+        if is_batchnorm:
             batchnorm_gamma = []
             batchnorm_beta = []
             for seqidx in range(seq_len):
@@ -102,12 +102,12 @@ def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., bat
                     dp_ratio = 0.
                 else:
                     dp_ratio = dropout
-                if batchnorm_yn:
+                if is_batchnorm:
                     next_state = gru(num_hidden_gru_list[i], indata=hidden,
                                      prev_state=last_states[i],
                                      param=param_cells[i],
                                      seqidx=k, layeridx=i, dropout=dp_ratio,
-                                     batchnorm_yn=batchnorm_yn,
+                                     is_batchnorm=is_batchnorm,
                                      gamma=batchnorm_gamma[k],
                                      beta=batchnorm_beta[k])
                 else:
@@ -115,7 +115,7 @@ def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., bat
                                      prev_state=last_states[i],
                                      param=param_cells[i],
                                      seqidx=k, layeridx=i, dropout=dp_ratio,
-                                     batchnorm_yn=batchnorm_yn)
+                                     is_batchnorm=is_batchnorm)
                 hidden = next_state.h
                 last_states[i] = next_state
             # decoder
@@ -133,14 +133,14 @@ def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., bat
     return net
 
 
-def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., batchnorm_yn=False):
+def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_batchnorm=False):
     if num_gru_layer > 0:
         net_forward = gru_unroll(net=net,
                                  num_gru_layer=num_gru_layer,
                                  seq_len=seq_len,
                                  num_hidden_gru_list=num_hidden_gru_list,
                                  dropout=dropout,
-                                 batchnorm_yn=batchnorm_yn,
+                                 is_batchnorm=is_batchnorm,
                                  prefix="forward_",
                                  direction="forward")
         net_backward = gru_unroll(net=net,
@@ -148,7 +148,7 @@ def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., 
                                   seq_len=seq_len,
                                   num_hidden_gru_list=num_hidden_gru_list,
                                   dropout=dropout,
-                                  batchnorm_yn=batchnorm_yn,
+                                  is_batchnorm=is_batchnorm,
                                   prefix="backward_",
                                   direction="backward")
         hidden_all = []
@@ -159,14 +159,14 @@ def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., 
 
 
 def bi_gru_unroll_two_input_two_output(net1, net2, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0.,
-                                       batchnorm_yn=False):
+                                       is_batchnorm=False):
     if num_gru_layer > 0:
         net_forward = gru_unroll(net=net1,
                                  num_gru_layer=num_gru_layer,
                                  seq_len=seq_len,
                                  num_hidden_gru_list=num_hidden_gru_list,
                                  dropout=dropout,
-                                 batchnorm_yn=batchnorm_yn,
+                                 is_batchnorm=is_batchnorm,
                                  prefix="forward_",
                                  direction="forward")
         net_backward = gru_unroll(net=net2,
@@ -174,7 +174,7 @@ def bi_gru_unroll_two_input_two_output(net1, net2, num_gru_layer, seq_len, num_h
                                   seq_len=seq_len,
                                   num_hidden_gru_list=num_hidden_gru_list,
                                   dropout=dropout,
-                                  batchnorm_yn=batchnorm_yn,
+                                  is_batchnorm=is_batchnorm,
                                   prefix="backward_",
                                   direction="backward")
         return net_forward, net_backward

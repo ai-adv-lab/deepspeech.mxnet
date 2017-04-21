@@ -48,14 +48,14 @@ class DataGenerator(object):
         self.feats_mean = feats_mean
         self.feats_std = feats_std
 
-    def featurize(self, audio_clip, overwrite_yn=False):
+    def featurize(self, audio_clip, overwrite=False):
         """ For a given audio clip, calculate the log of its Fourier Transform
         Params:
             audio_clip(str): Path to the audio clip
         """
         return spectrogram_from_file(
             audio_clip, step=self.step, window=self.window,
-            max_freq=self.max_freq, overwrite_yn=overwrite_yn)
+            max_freq=self.max_freq, overwrite=overwrite)
 
     def load_metadata_from_desc_file(self, desc_file, partition='train',
                                      max_duration=16.0,):
@@ -146,7 +146,7 @@ class DataGenerator(object):
         self.max_seq_length=max_seq_length
         return max_seq_length
 
-    def prepare_minibatch(self, audio_paths, texts, overwrite_yn=False):
+    def prepare_minibatch(self, audio_paths, texts, overwrite=False):
         """ Featurize a minibatch of audio, zero pad them and return a dictionary
         Params:
             audio_paths (list(str)): List of paths to audio files
@@ -159,14 +159,12 @@ class DataGenerator(object):
         # Features is a list of (timesteps, feature_dim) arrays
         # Calculate the features for each audio clip, as the log of the
         # Fourier Transform of the audio
-        features = [self.featurize(a, overwrite_yn=overwrite_yn) for a in audio_paths]
+        features = [self.featurize(a, overwrite=overwrite) for a in audio_paths]
         input_lengths = [f.shape[0] for f in features]
-        #max_length = max(input_lengths)
         feature_dim = features[0].shape[1]
         mb_size = len(features)
         # Pad all the inputs so that they are all the same length
         x = np.zeros((mb_size, self.max_seq_length, feature_dim))
-        #y = []
         y = np.zeros((mb_size, self.max_label_length))
         labelUtil = LabelUtil.getInstance()
         label_lengths = []
@@ -174,11 +172,9 @@ class DataGenerator(object):
             feat = features[i]
             feat = self.normalize(feat)  # Center using means and std
             x[i, :feat.shape[0], :] = feat
-            label = labelUtil.convertWordToNum(texts[i])
+            label = labelUtil.convert_word_to_num(texts[i])
             y[i, :len(texts[i])] = label
             label_lengths.append(len(label))
-        # Flatten labels to comply with warp-CTC signature
-        #y = reduce(lambda i, j: i + j, y)
         return {
             'x': x,  # (0-padded features of shape(mb_size,timesteps,feat_dim)
             'y': y,  # list(int) Flattened labels (integer sequences)
@@ -195,7 +191,7 @@ class DataGenerator(object):
         return self.iterate(self.val_audio_paths, self.val_texts,
                             minibatch_size)
 
-    def sample_nomalize(self, k_samples=1000, overwrite_yn=False):
+    def sample_normalize(self, k_samples=1000, overwrite=False):
         """ Estimate the mean and std of the features from the training set
         Params:
             k_samples (int): Use this number of samples for estimation
@@ -209,13 +205,13 @@ class DataGenerator(object):
             samples = self.rng.sample(self.train_audio_paths, k_samples)
             audio_paths_iter = iter(samples)
         audio_clip = audio_paths_iter.next()
-        feat = self.featurize(audio_clip=audio_clip, overwrite_yn=overwrite_yn)
+        feat = self.featurize(audio_clip=audio_clip, overwrite=overwrite)
         feat_squared = np.square(feat)
         count = float(feat.shape[0])
         dim = feat.shape[1]
 
         for iter_index in range(len(samples) - 1):
-            next_feat = self.featurize(audio_clip=audio_paths_iter.next(), overwrite_yn=overwrite_yn)
+            next_feat = self.featurize(audio_clip=audio_paths_iter.next(), overwrite=overwrite)
             next_feat_squared = np.square(next_feat)
             feat_vertically_stacked = np.concatenate((feat, next_feat)).reshape(-1, dim)
             feat = np.sum(feat_vertically_stacked, axis=0, keepdims=True)

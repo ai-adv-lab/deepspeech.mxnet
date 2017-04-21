@@ -92,7 +92,7 @@ def spectrogram(samples, fft_length=256, sample_rate=2, hop_length=128):
 
 
 def spectrogram_from_file(filename, step=10, window=20, max_freq=None,
-                          eps=1e-14, overwrite_yn=False):
+                          eps=1e-14, overwrite=False):
     """ Calculate the log of linear spectrogram from FFT energy
     Params:
         filename (str): Path to the audio file
@@ -104,7 +104,7 @@ def spectrogram_from_file(filename, step=10, window=20, max_freq=None,
     """
 
     csvfilename = filename.replace(".wav", ".csv")
-    if (os.path.isfile(csvfilename) is False) or overwrite_yn:
+    if (os.path.isfile(csvfilename) is False) or overwrite:
         with soundfile.SoundFile(filename) as sound_file:
             audio = sound_file.read(dtype='float32')
             sample_rate = sound_file.samplerate

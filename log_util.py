@@ -24,23 +24,23 @@ class LogUtil(object):
         # remove default handler
         self._logger.propagate = False
 
-        streamHandler = logging.StreamHandler()
-        streamFormatter = logging.Formatter('[%(levelname)8s][%(asctime)s.%(msecs)03d] %(message)s',
-                                            datefmt='%Y/%m/%d %H:%M:%S')
-        streamHandler.setFormatter(streamFormatter)
+        stream_handler = logging.StreamHandler()
+        stream_formatter = logging.Formatter('[%(levelname)8s][%(asctime)s.%(msecs)03d] %(message)s',
+                                             datefmt='%Y/%m/%d %H:%M:%S')
+        stream_handler.setFormatter(stream_formatter)
 
         if self._filename is not None:
             file_max_bytes = 10 * 1024 * 1024
 
-            fileHandler = logging.handlers.RotatingFileHandler(filename='./log/' + self._filename,
+            file_handler = logging.handlers.RotatingFileHandler(filename='./log/' + self._filename,
                                                                maxBytes=file_max_bytes,
                                                                backupCount=10)
-            fileFormatter = logging.Formatter('[%(levelname)8s][%(asctime)s.%(msecs)03d] %(message)s',
-                                              datefmt='%Y/%m/%d %H:%M:%S')
-            fileHandler.setFormatter(fileFormatter)
-            self._logger.addHandler(fileHandler)
+            file_formatter = logging.Formatter('[%(levelname)8s][%(asctime)s.%(msecs)03d] %(message)s',
+                                               datefmt='%Y/%m/%d %H:%M:%S')
+            file_handler.setFormatter(file_formatter)
+            self._logger.addHandler(file_handler)
 
-        self._logger.addHandler(streamHandler)
+        self._logger.addHandler(stream_handler)
         self._logger.setLevel(logging.DEBUG)
 
     def getlogger(self):

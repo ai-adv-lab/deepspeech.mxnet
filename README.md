@@ -1,50 +1,36 @@
-# DeepSpeech2.mxnet: Rich Speech Recognition Example
+## **DeepSpeech2.mxnet: Rich Speech Recognition Example**
 ----------  
-This example helps you to build Speech-To-Text (STT) models at scale using
-- CNNs, (Bi-) RNNs, (Bi-) LSTMs, and (Bi-) GRUs for network layers,
+This example based on DeepSpeech2 of Baidu helps you to build Speech-To-Text (STT) models at scale using
+- CNNs, fully connected networks, (Bi-) RNNs, (Bi-) LSTMs, and (Bi-) GRUs for network layers,
 - batch-normalization and drop-outs for training efficiency,
-- and a Baidu's Warp CTC for loss calculations.
+- and a Baidu's WarpCTC for loss calculations.
 
-This example helps you train and predict an **STT model**.   
-It provides **convolutional,fully connected,rnn, bi-rnn, lstm, bi-lstm, gru, bi-gru layers** with support for batchnorm and sequential data 
-and **WarpCTC** for loss function.  
-For default option we put baidu's deep speech 2 model template and
-without changing any source code, you can choose the type of RNN networks,
-the number of layers and hidden units  
-as you want to build by just editing configuration file. 
+In order to make your own STT models, besides, all you need is to just edit a configuration file not actual codes.
 
 -------------------
 ## Motivation
 This example is intended to guide people who want to making practical STT models with MXNet.
 With rich functionalities and convenience explained above, you can build your own STT models with it easier than former examples.
 
-## Dependencies
 -------------------  
+## Before you start
+#### Environments  
+- MXNet version: 0.9.5+
+- GPU memory size: 2.4GB+
+- We recommend that you test a model using small network first.
 
-#### Environment  
 
-MXNet version should be equal or greater than version 0.9.5. and  
-gpu memory more than 2.4Gb is required. If your gpu memory is less than 2.4Gb  
-you should test on smaller network by changing the network from configuration file.  
-
-
-#### Soundfile
-
-You need to install soundfile for data preprocessing.
-```bash
+#### Dependency: Soundfile
+Install soundfile for audio preprocessing. If encounter errors about libsndfile, follow [this tutorial](http://www.linuxfromscratch.org/blfs/view/svn/multimedia/libsndfile.html).
+<pre>
 pip install soundfile
-```
+</pre>
+#### Dependency: Warp CTC
+Follow [this instruction](https://github.com/dmlc/mxnet/tree/master/example/warpctc) to install Baidu's WarpCTC.
 
-If you encounter error related to libsndfile 
-Try to follow this tutorial to install http://www.linuxfromscratch.org/blfs/view/svn/multimedia/libsndfile.html
-
-#### Warp CTC
-
-To enable WarpCTC for your MXNet, follow the instructions on https://github.com/dmlc/mxnet/tree/master/example/warpctc
-
-
+-------------------  
 ## How it works
--------------
+
 
 Let's introduce what it needs and how it works to run this example.
 

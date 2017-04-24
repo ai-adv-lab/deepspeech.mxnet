@@ -84,7 +84,7 @@ model_file = 'file name of your model to be tested'
 ...
 [data]
 ...
-test_json = 'a json file descibed test audios'
+test_json = 'a json file described test audios'
 ...</code></pre>
 <br />
 Run the following line after all modification explained above.  

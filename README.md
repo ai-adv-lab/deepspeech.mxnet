@@ -1,6 +1,4 @@
-**deepSpeech.mxnet: Rich Speech Example**
-==========================================
-<br />
+# **deepSpeech.mxnet: Rich Speech Example**
 This example based on [DeepSpeech2 of Baidu](https://arxiv.org/abs/1512.02595) helps you to build Speech-To-Text (STT) models at scale using
 - CNNs, fully connected networks, (Bi-) RNNs, (Bi-) LSTMs, and (Bi-) GRUs for network layers,
 - batch-normalization and drop-outs for training efficiency,

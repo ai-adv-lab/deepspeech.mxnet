@@ -95,6 +95,13 @@ def load_data(args):
     from importlib import import_module
     prepare_data_template = import_module(args.config.get('arch', 'arch_file'))
     init_states = prepare_data_template.prepare_data(args)
+    if mode == "train":
+        sort_by_duration=True
+        shuffle=False
+    else:
+        sort_by_duration=False
+	shuffle=True
+
     data_loaded = STTIter(partition="train",
                           count=datagen.count,
                           datagen=datagen,
@@ -104,8 +111,8 @@ def load_data(args):
                           seq_length=max_t_count,
                           width=whcs.width,
                           height=whcs.height,
-                          sort_by_duration=True,
-                          shuffle=False)
+                          sort_by_duration=sort_by_duration,
+                          shuffle=shuffle)
 
     if mode == 'predict':
         return data_loaded, args

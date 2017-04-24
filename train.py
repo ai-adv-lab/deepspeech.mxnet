@@ -106,8 +106,10 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
             module.update()
             module.update_metric(eval_metric, data_batch.label)
         # commented for Libri_sample data set to see only train cer
-        # log.info('---------validation---------')
-        # module.score(eval_data=data_val, num_batch=None, eval_metric=eval_metric, reset=True)
+        log.info('---------validation---------')
+        for nbatch, data_batch in enumerate(data_val):
+            module.update_metric(eval_metric, data_batch.label)
+        #module.score(eval_data=data_val, num_batch=None, eval_metric=eval_metric, reset=True)
 
         data_train.reset()
         # save checkpoints

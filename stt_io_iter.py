@@ -34,13 +34,13 @@ class STTIter(mx.io.DataIter):
                  shuffle=True, partition="train"):
         super(STTIter, self).__init__()
         self.batch_size = batch_size
-        self.count = count
         self.num_label = num_label
         self.init_states = init_states
         self.init_state_arrays = [mx.nd.zeros(x[1]) for x in init_states]
         self.datagen = datagen
         self.provide_data = [('data', (batch_size, seq_length, width * height))] + init_states
         self.provide_label = [('label', (self.batch_size, num_label))]
+        self.count = count
         # self.partition = datagen.partition
         if partition == 'train':
             durations = datagen.train_durations

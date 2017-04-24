@@ -111,7 +111,7 @@ def load_data(args):
         return data_loaded, args
     else:
         validation_loaded = STTIter(partition="validation",
-                                    count=datagen.count,
+                                    count=datagen.val_count,
                                     datagen=datagen,
                                     batch_size=batch_size,
                                     num_label=max_label_length,

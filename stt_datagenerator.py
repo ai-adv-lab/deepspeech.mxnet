@@ -88,9 +88,9 @@ class DataGenerator(object):
                     logger.warn('Error reading line #{}: {}'
                                 .format(line_num, json_line))
                     logger.warn(str(e))
-        self.count = len(audio_paths)
 
         if partition == 'train':
+            self.count = len(audio_paths)
             self.train_audio_paths = audio_paths
             self.train_durations = durations
             self.train_texts = texts

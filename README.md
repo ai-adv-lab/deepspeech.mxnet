@@ -1,4 +1,6 @@
-# **deepSpeech.mxnet: Rich Speech Example**
+**deepSpeech.mxnet: Rich Speech Example**
+=========================================
+  
 This example based on [DeepSpeech2 of Baidu](https://arxiv.org/abs/1512.02595) helps you to build Speech-To-Text (STT) models at scale using
 - CNNs, fully connected networks, (Bi-) RNNs, (Bi-) LSTMs, and (Bi-) GRUs for network layers,
 - batch-normalization and drop-outs for training efficiency,
@@ -97,5 +99,6 @@ Train and test your own models by preparing two files.
 The new file should specify the items below the '[arch]' section of the original file. 
 2) A new implementation file, i.e., arch_custom.py, corresponing to the file 'arch_deepspeech.py'.
 The new file should implement two functions, prepare_data() and arch(), for building networks described in the new configuration file.
+
 Run the following line after preparing the files.   
 <pre><code>python main.py --configfile custom.cfg --archfile arch_custom</pre></code>

@@ -67,7 +67,7 @@ def load_data(args):
         datagen.load_validation_data(val_json)
 
         if mode == "train":
-            normalize_target_k = args.config.get('train', 'normalize_target_k')
+            normalize_target_k = args.config.getint('train', 'normalize_target_k')
             datagen.sample_normalize(normalize_target_k, True)
         elif mode == "load":
             # get feat_mean and feat_std to normalize dataset
@@ -162,6 +162,9 @@ if __name__ == '__main__':
     # set parameters from cfg file
     args = parse_args(sys.argv[1])
 
+    log_filename = args.config.get('common', 'log_filename')
+    log = LogUtil(filename=log_filename).getlogger()
+
     # set parameters from data section(common)
     mode = args.config.get('common', 'mode')
     if mode not in ['train', 'predict', 'load']:
@@ -184,9 +187,6 @@ if __name__ == '__main__':
     # check the number of gpus is positive divisor of the batch size
     if batch_size % num_gpu != 0:
         raise Exception('num_gpu should be positive divisor of batch_size')
-
-    log_filename = args.config.get('common', 'log_filename')
-    log = LogUtil(filename=log_filename).getlogger()
 
     if mode == "predict":
         data_train, args = load_data(args)

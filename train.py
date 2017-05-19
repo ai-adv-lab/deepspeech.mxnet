@@ -48,8 +48,7 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
     # tensorboard setting
     loss_metric = STTMetric(batch_size=batch_size, num_gpu=num_gpu, seq_length=seq_len,is_logging=enable_logging_train_metric,is_epoch_end=False)
 
-    optimizer = args.config.get('train', 'optimizer')
-    momentum = args.config.getfloat('train', 'momentum')
+    optimizer = args.config.get('optimizer', 'optimizer')
     learning_rate = args.config.getfloat('train', 'learning_rate')
     learning_rate_annealing = args.config.getfloat('train', 'learning_rate_annealing')
 
@@ -59,6 +58,8 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
     weight_decay = args.config.getfloat('train', 'weight_decay')
     save_optimizer_states = args.config.getboolean('train', 'save_optimizer_states')
     show_every = args.config.getint('train', 'show_every')
+    optimizer_params_dictionary = json.loads(args.config.get('optimizer', 'optimizer_params_dictionary'))
+    kvstore_option = args.config.get('common', 'kvstore_option')
     n_epoch=begin_epoch
 
     if clip_gradient == 0:
@@ -75,24 +76,14 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
     lr_scheduler = SimpleLRScheduler(learning_rate=learning_rate)
 
     def reset_optimizer(force_init=False):
-        if optimizer == "sgd":
-            module.init_optimizer(kvstore='device',
-                                  optimizer=optimizer,
-                                  optimizer_params={'lr_scheduler': lr_scheduler,
-                                                    'momentum': momentum,
-                                                    'clip_gradient': clip_gradient,
-                                                    'wd': weight_decay},
-                                  force_init=force_init)
-        elif optimizer == "adam":
-            module.init_optimizer(kvstore='device',
-                                  optimizer=optimizer,
-                                  optimizer_params={'lr_scheduler': lr_scheduler,
-                                                    #'momentum': momentum,
-                                                    'clip_gradient': clip_gradient,
-                                                    'wd': weight_decay},
-                                  force_init=force_init)
-        else:
-            raise Exception('Supported optimizers are sgd and adam. If you want to implement others define them in train.py')
+        optimizer_params = {'lr_scheduler': lr_scheduler,
+                            'clip_gradient': clip_gradient,
+                            'wd': weight_decay}
+        optimizer_params.update(optimizer_params_dictionary)
+        module.init_optimizer(kvstore=kvstore_option,
+                              optimizer=optimizer,
+                              optimizer_params=optimizer_params,
+                              force_init=force_init)
     if mode == "train":
         reset_optimizer(force_init=True)
     else:

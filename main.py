@@ -109,7 +109,7 @@ def load_data(args):
             'Define mode in the cfg file first. train or predict or load can be the candidate for the mode.')
 
     is_batchnorm = args.config.getboolean('arch', 'is_batchnorm')
-    if batch_size == 1 and is_batchnorm and (mode == 'train' or mode=='load'):
+    if batch_size == 1 and is_batchnorm and (mode == 'train' or mode == 'load'):
         raise Warning('batch size 1 is too small for is_batchnorm')
 
     # sort file paths by its duration in ascending order to implement sortaGrad
@@ -263,8 +263,10 @@ if __name__ == '__main__':
         is_batchnorm = args.config.getboolean('arch', 'is_batchnorm')
         if is_batchnorm :
             for nbatch, data_batch in enumerate(data_train):
-                # when is_train = False it leads to high cer when batch_norm
                 model_loaded.forward(data_batch, is_train=False)
                 model_loaded.update_metric(eval_metric, data_batch.label)
         else :
             model_loaded.score(eval_data=data_train, num_batch=None, eval_metric=eval_metric, reset=True)
+    else:
+        raise Exception(
+                'Define mode in the cfg file first. train or predict or load can be the candidate for the mode')

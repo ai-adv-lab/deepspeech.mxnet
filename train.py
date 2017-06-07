@@ -7,7 +7,8 @@ from config_util import get_checkpoint_path, parse_contexts
 from stt_metric import STTMetric
 #tensorboard setting
 from tensorboard import SummaryWriter
-import numpy as np
+import json
+
 
 
 def get_initializer(args):
@@ -54,9 +55,9 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
 
     mode = args.config.get('common', 'mode')
     num_epoch = args.config.getint('train', 'num_epoch')
-    clip_gradient = args.config.getfloat('train', 'clip_gradient')
-    weight_decay = args.config.getfloat('train', 'weight_decay')
-    save_optimizer_states = args.config.getboolean('train', 'save_optimizer_states')
+    clip_gradient = args.config.getfloat('optimizer', 'clip_gradient')
+    weight_decay = args.config.getfloat('optimizer', 'weight_decay')
+    save_optimizer_states = args.config.getboolean('optimizer', 'save_optimizer_states')
     show_every = args.config.getint('train', 'show_every')
     optimizer_params_dictionary = json.loads(args.config.get('optimizer', 'optimizer_params_dictionary'))
     kvstore_option = args.config.get('common', 'kvstore_option')

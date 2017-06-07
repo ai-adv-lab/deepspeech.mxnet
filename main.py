@@ -160,7 +160,20 @@ def load_data(args):
 
     if mode == 'train' or mode == 'load':
         if is_bucketing:
-            data_loaded = BucketSTTIter(partition="validation",
+            validation_loaded = BucketSTTIter(partition="validation",
+                                              count=datagen.val_count,
+                                              datagen=datagen,
+                                              batch_size=batch_size,
+                                              num_label=max_label_length,
+                                              init_states=init_states,
+                                              seq_length=max_t_count,
+                                              width=whcs.width,
+                                              height=whcs.height,
+                                              sort_by_duration=False,
+                                              is_bi_graphemes=is_bi_graphemes,
+                                              buckets=buckets)
+        else:
+            validation_loaded = STTIter(partition="validation",
                                         count=datagen.val_count,
                                         datagen=datagen,
                                         batch_size=batch_size,
@@ -170,20 +183,7 @@ def load_data(args):
                                         width=whcs.width,
                                         height=whcs.height,
                                         sort_by_duration=False,
-                                        is_bi_graphemes=is_bi_graphemes,
-                                        buckets=buckets)
-        else:
-            validation_loaded = STTIter(partition="validation",
-                                    count=datagen.val_count,
-                                    datagen=datagen,
-                                    batch_size=batch_size,
-                                    num_label=max_label_length,
-                                    init_states=init_states,
-                                    seq_length=max_t_count,
-                                    width=whcs.width,
-                                    height=whcs.height,
-                                    sort_by_duration=False,
-                                    is_bi_graphemes=is_bi_graphemes)
+                                        is_bi_graphemes=is_bi_graphemes)
         return data_loaded, validation_loaded, args
     elif mode == 'predict':
         return data_loaded, args

@@ -130,6 +130,7 @@ def load_data(args):
         sort_by_duration = True
     else:
         sort_by_duration = False
+    is_bucketing = args.config.getboolean('arch', 'is_bucketing')
     if is_bucketing:
         buckets = json.loads(args.config.get('arch', 'buckets'))
         data_loaded = BucketSTTIter(partition="train",
@@ -172,7 +173,7 @@ def load_data(args):
                                         is_bi_graphemes=is_bi_graphemes,
                                         buckets=buckets)
         else:
-        validation_loaded = STTIter(partition="validation",
+            validation_loaded = STTIter(partition="validation",
                                     count=datagen.val_count,
                                     datagen=datagen,
                                     batch_size=batch_size,

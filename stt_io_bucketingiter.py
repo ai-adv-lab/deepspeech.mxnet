@@ -35,6 +35,8 @@ class BucketSTTIter(mx.io.DataIter):
         self.num_label = num_label
         self.init_states = init_states
         self.init_state_arrays = [mx.nd.zeros(x[1]) for x in init_states]
+        self.width = width
+        self.height = height
         self.provide_data = [('data', (self.batch_size, seq_length, width * height))] + init_states
         self.provide_label = [('label', (self.batch_size, self.maxLabelLength))]
         self.datagen = datagen
@@ -137,7 +139,7 @@ class BucketSTTIter(mx.io.DataIter):
         label_all = [mx.nd.array(data_set['y'])]
 
         self.label = label_all
-        provide_data = [('data', (self.batch_size, self.buckets[i], self.param.width * self.param.height))] + self.init_states
+        provide_data = [('data', (self.batch_size, self.buckets[i], self.width * self.height))] + self.init_states
 
         return mx.io.DataBatch(data_all, label_all, pad=0,
                                bucket_key=self.buckets[i],

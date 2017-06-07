@@ -87,7 +87,8 @@ def arch(args, seq_len =-1):
                        channels=channel_num,
                        filter_dimension=conv_layer1_filter_dim,
                        stride=conv_layer1_stride,
-                       no_bias=is_batchnorm
+                       no_bias=is_batchnorm,
+                       name='conv1'
                        )
             if is_batchnorm:
                 # batch norm normalizes axis 1
@@ -97,7 +98,8 @@ def arch(args, seq_len =-1):
                        channels=channel_num,
                        filter_dimension=conv_layer2_filter_dim,
                        stride=conv_layer2_stride,
-                       no_bias=is_batchnorm
+                       no_bias=is_batchnorm,
+                       name='conv2'
                        )
             if is_batchnorm:
                 # batch norm normalizes axis 1

@@ -92,7 +92,7 @@ def arch(args, seq_len=-1):
                        )
             if is_batchnorm:
                 # batch norm normalizes axis 1
-                net = batchnorm(net)
+                net = batchnorm(net, name="conv1_batchnorm")
 
             net = conv(net=net,
                        channels=channel_num,
@@ -101,9 +101,10 @@ def arch(args, seq_len=-1):
                        no_bias=is_batchnorm,
                        name='conv2'
                        )
-            if is_batchnorm:
-                # batch norm normalizes axis 1
-                net = batchnorm(net)
+            # if is_batchnorm:
+            #     # batch norm normalizes axis 1
+            #     net = batchnorm(net, name="conv2_batchnorm")
+
             net = mx.sym.transpose(data=net, axes=(0, 2, 1, 3))
             net = mx.sym.Reshape(data=net, shape=(0, 0, -3))
             seq_len_after_conv_layer1 = int(
@@ -139,14 +140,15 @@ def arch(args, seq_len=-1):
             net = sequence_fc(net=net, seq_len=seq_len_after_conv_layer2, num_layer=num_rear_fc_layers, prefix="rear",
                               num_hidden_list=num_hidden_rear_fc_list, act_type_list=act_type_rear_fc_list,
                               is_batchnorm=is_batchnorm)
-            if is_batchnorm:
-                hidden_all = []
-                # batch norm normalizes axis 1
-                for seq_index in range(seq_len_after_conv_layer2):
-                    hidden = net[seq_index]
-                    hidden = batchnorm(hidden)
-                    hidden_all.append(hidden)
-                net = hidden_all
+            #
+            # if is_batchnorm:
+            #     hidden_all = []
+            #     # batch norm normalizes axis 1
+            #     for seq_index in range(seq_len_after_conv_layer2):
+            #         hidden = net[seq_index]
+            #         hidden = batchnorm(hidden)
+            #         hidden_all.append(hidden)
+            #     net = hidden_all
 
             # warpctc layer
             net = warpctc_layer(net=net,

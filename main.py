@@ -269,8 +269,8 @@ if __name__ == '__main__':
         data_train, args = load_data(args)
     is_batchnorm = args.config.getboolean('arch', 'is_batchnorm')
     is_bucketing = args.config.getboolean('arch', 'is_bucketing')
-    if is_bucketing and is_batchnorm:
-        raise Exception('Both is_bucketing,is_batchnorm are true. Bucketing and batchnorm scheme is not supported in the same time yet.')
+    #if is_bucketing and is_batchnorm:
+    #    raise Exception('Both is_bucketing,is_batchnorm are true. Bucketing and batchnorm scheme is not supported in the same time yet.')
 
     # log current config
     config_logger = ConfigLogger(log)

@@ -15,7 +15,7 @@ GRUModel = namedtuple("GRUModel", ["rnn_exec", "symbol",
                                    "param_blocks"])
 
 
-def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., is_batchnorm=False, gamma=None, beta=None):
+def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., is_batchnorm=False, gamma=None, beta=None, name=None):
     """
     GRU Cell symbol
     Reference:
@@ -31,7 +31,7 @@ def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., is_
                                 name="t%d_l%d_gates_i2h" % (seqidx, layeridx))
 
     if is_batchnorm:
-        i2h = batchnorm(net=i2h, gamma=gamma, beta=beta, name="t%d_l%d_batchnorm" % (seqidx, layeridx))
+        i2h = batchnorm(net=i2h, gamma=gamma, beta=beta, name="%s_batchnorm" % name)
     h2h = mx.sym.FullyConnected(data=prev_state.h,
                                 weight=param.gates_h2h_weight,
                                 bias=param.gates_h2h_bias,
@@ -109,13 +109,15 @@ def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_
                                      seqidx=k, layeridx=i, dropout=dp_ratio,
                                      is_batchnorm=is_batchnorm,
                                      gamma=batchnorm_gamma[k],
-                                     beta=batchnorm_beta[k])
+                                     beta=batchnorm_beta[k],
+                                     name=prefix)
                 else:
                     next_state = gru(num_hidden_gru_list[i], indata=hidden,
                                      prev_state=last_states[i],
                                      param=param_cells[i],
                                      seqidx=k, layeridx=i, dropout=dp_ratio,
-                                     is_batchnorm=is_batchnorm)
+                                     is_batchnorm=is_batchnorm,
+                                     name=prefix)
                 hidden = next_state.h
                 last_states[i] = next_state
             # decoder

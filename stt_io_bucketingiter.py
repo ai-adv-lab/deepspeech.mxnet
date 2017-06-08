@@ -37,8 +37,6 @@ class BucketSTTIter(mx.io.DataIter):
         self.init_state_arrays = [mx.nd.zeros(x[1]) for x in init_states]
         self.width = width
         self.height = height
-        self.provide_data = [('data', (self.batch_size, seq_length, width * height))] + init_states
-        self.provide_label = [('label', (self.batch_size, self.maxLabelLength))]
         self.datagen = datagen
         self.label = None
         self.is_bi_graphemes = is_bi_graphemes
@@ -92,8 +90,8 @@ class BucketSTTIter(mx.io.DataIter):
                 ndiscard += 1
                 continue
             self.data[buck].append(self.trainDataList[i])
-
-        print("WARNING: discarded %d sentences longer than the largest bucket."% ndiscard)
+        if ndiscard != 0:
+            print("WARNING: discarded %d sentences longer than the largest bucket."% ndiscard)
 
         self.buckets = buckets
         self.nddata = []
@@ -104,6 +102,9 @@ class BucketSTTIter(mx.io.DataIter):
         for i, buck in enumerate(self.data):
             self.idx.extend([(i, j) for j in range(0, len(buck) - batch_size + 1, batch_size)])
         self.curr_idx = 0
+
+        self.provide_data = [('data', (self.batch_size, self.default_bucket_key , width * height))] + init_states
+        self.provide_label = [('label', (self.batch_size, self.maxLabelLength))]
 
         #self.reset()
 
@@ -130,10 +131,13 @@ class BucketSTTIter(mx.io.DataIter):
 
         if self.is_first_epoch:
             data_set = self.datagen.prepare_minibatch(audio_paths, texts, overwrite=True,
-                                                      is_bi_graphemes=self.is_bi_graphemes)
+                                                      is_bi_graphemes=self.is_bi_graphemes,
+                                                      seq_length=self.buckets[i]
+                                                      )
         else:
             data_set = self.datagen.prepare_minibatch(audio_paths, texts, overwrite=False,
-                                                      is_bi_graphemes=self.is_bi_graphemes)
+                                                      is_bi_graphemes=self.is_bi_graphemes,
+                                                      seq_length=self.buckets[i])
 
         data_all = [mx.nd.array(data_set['x'])] + self.init_state_arrays
         label_all = [mx.nd.array(data_set['y'])]

@@ -149,7 +149,7 @@ class DataGenerator(object):
         self.max_seq_length=max_seq_length
         return max_seq_length
 
-    def prepare_minibatch(self, audio_paths, texts, overwrite=False, is_bi_graphemes=False):
+    def prepare_minibatch(self, audio_paths, texts, overwrite=False, is_bi_graphemes=False, seq_length=-1):
         """ Featurize a minibatch of audio, zero pad them and return a dictionary
         Params:
             audio_paths (list(str)): List of paths to audio files
@@ -167,7 +167,10 @@ class DataGenerator(object):
         feature_dim = features[0].shape[1]
         mb_size = len(features)
         # Pad all the inputs so that they are all the same length
-        x = np.zeros((mb_size, self.max_seq_length, feature_dim))
+        if seq_length == -1:
+            x = np.zeros((mb_size, self.max_seq_length, feature_dim))
+        else:
+            x = np.zeros((mb_size, seq_length, feature_dim))
         y = np.zeros((mb_size, self.max_label_length))
         labelUtil = LabelUtil.getInstance()
         label_lengths = []

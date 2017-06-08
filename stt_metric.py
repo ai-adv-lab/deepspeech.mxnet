@@ -59,7 +59,7 @@ class STTMetric(mx.metric.EvalMetric):
                 self.num_inst += 1
                 self.sum_metric += this_cer
                 if self.is_epoch_end:
-                    loss = ctc_loss(l, pred, i, int(self.seq_length), int(self.batch_size), int(self.num_gpu))
+                    loss = ctc_loss(l, pred, i, int(seq_length), int(self.batch_size), int(self.num_gpu))
                     self.batch_loss += loss
                     if self.is_logging:
                         log.info("loss: %f " % loss)

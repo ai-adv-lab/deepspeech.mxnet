@@ -52,7 +52,7 @@ def prepare_data(args):
     return init_states
 
 
-def arch(args, seq_len =-1):
+def arch(args, seq_len=-1):
     if type(args) is argparse.Namespace:
         mode = args.config.get("common", "mode")
         if mode == "train":

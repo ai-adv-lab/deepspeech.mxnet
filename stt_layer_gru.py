@@ -113,7 +113,7 @@ def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_
                                      is_batchnorm=is_batchnorm,
                                      gamma=batchnorm_gamma[k],
                                      beta=batchnorm_beta[k],
-                                     name=prefix)
+                                     name=prefix + ("t%d" % seqidx))
                 else:
                     next_state = gru(num_hidden_gru_list[i], indata=hidden,
                                      prev_state=last_states[i],

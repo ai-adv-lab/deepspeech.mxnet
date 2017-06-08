@@ -31,7 +31,10 @@ def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., is_
                                 name="t%d_l%d_gates_i2h" % (seqidx, layeridx))
 
     if is_batchnorm:
-        i2h = batchnorm(net=i2h, gamma=gamma, beta=beta, name="%s_batchnorm" % name)
+        if name is not None:
+            i2h = batchnorm(net=i2h, gamma=gamma, beta=beta, name="%s_batchnorm" % name)
+        else:
+            i2h = batchnorm(net=i2h, gamma=gamma, beta=beta)
     h2h = mx.sym.FullyConnected(data=prev_state.h,
                                 weight=param.gates_h2h_weight,
                                 bias=param.gates_h2h_bias,

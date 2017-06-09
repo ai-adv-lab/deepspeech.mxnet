@@ -63,8 +63,8 @@ def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., is_
     return GRUState(h=next_h)
 
 
-def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_batchnorm=False, prefix="",
-               direction="forward"):
+def gru_unroll(net, num_gru_layer, seq_len,  num_hidden_gru_list, dropout=0., is_batchnorm=False, prefix="",
+               direction="forward", max_seq_len=None):
     if num_gru_layer > 0:
         param_cells = []
         last_states = []
@@ -84,9 +84,14 @@ def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_
         if is_batchnorm:
             batchnorm_gamma = []
             batchnorm_beta = []
-            for seqidx in range(seq_len):
-                batchnorm_gamma.append(mx.sym.Variable(prefix + "t%d_i2h_gamma" % seqidx))
-                batchnorm_beta.append(mx.sym.Variable(prefix + "t%d_i2h_beta" % seqidx))
+            if max_seq_len is None:
+                for seqidx in range(seq_len):
+                    batchnorm_gamma.append(mx.sym.Variable(prefix + "t%d_i2h_gamma" % seqidx))
+                    batchnorm_beta.append(mx.sym.Variable(prefix + "t%d_i2h_beta" % seqidx))
+            else:
+                for seqidx in range(seq_len):
+                    batchnorm_gamma.append(mx.sym.Variable(prefix + "t%d_i2h_gamma" % seqidx))
+                    batchnorm_beta.append(mx.sym.Variable(prefix + "t%d_i2h_beta" % seqidx))
 
         hidden_all = []
         for seqidx in range(seq_len):
@@ -138,7 +143,7 @@ def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_
     return net
 
 
-def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_batchnorm=False):
+def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_batchnorm=False, max_seq_len=None):
     if num_gru_layer > 0:
         net_forward = gru_unroll(net=net,
                                  num_gru_layer=num_gru_layer,
@@ -147,7 +152,8 @@ def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., 
                                  dropout=dropout,
                                  is_batchnorm=is_batchnorm,
                                  prefix="forward_",
-                                 direction="forward")
+                                 direction="forward",
+                                 max_seq_len=max_seq_len)
         net_backward = gru_unroll(net=net,
                                   num_gru_layer=num_gru_layer,
                                   seq_len=seq_len,
@@ -155,7 +161,8 @@ def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., 
                                   dropout=dropout,
                                   is_batchnorm=is_batchnorm,
                                   prefix="backward_",
-                                  direction="backward")
+                                  direction="backward",
+                                  max_seq_len=max_seq_len)
         hidden_all = []
         for i in range(seq_len):
             hidden_all.append(mx.sym.Concat(*[net_forward[i], net_backward[i]], dim=1))

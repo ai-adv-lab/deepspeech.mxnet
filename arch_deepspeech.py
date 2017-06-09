@@ -52,7 +52,7 @@ def prepare_data(args):
     return init_states
 
 
-def arch(args, seq_len=-1):
+def arch(args, seq_len=None):
     if type(args) is argparse.Namespace:
         mode = args.config.get("common", "mode")
         if mode == "train":
@@ -67,11 +67,11 @@ def arch(args, seq_len=-1):
             num_hidden_rnn_list = json.loads(args.config.get("arch", "num_hidden_rnn_list"))
 
             is_batchnorm = args.config.getboolean("arch", "is_batchnorm")
+            is_bucketing = args.config.getboolean("arch", "is_bucketing")
 
-            if seq_len == -1:
+            if seq_len is None:
                 seq_len = args.config.getint('arch', 'max_t_count')
-            else:
-                seq_len = seq_len
+
             num_label = args.config.getint('arch', 'max_label_length')
 
             num_rear_fc_layers = args.config.getint("arch", "num_rear_fc_layers")
@@ -127,12 +127,22 @@ def arch(args, seq_len=-1):
                                  dropout=0.,
                                  is_batchnorm=is_batchnorm)
             elif rnn_type == "bigru":
-                net = bi_gru_unroll(net=net,
-                                    seq_len=seq_len_after_conv_layer2,
-                                    num_hidden_gru_list=num_hidden_rnn_list,
-                                    num_gru_layer=num_rnn_layer,
-                                    dropout=0.,
-                                    is_batchnorm=is_batchnorm)
+                if is_bucketing:
+                    max_seq_len = args.config.getint('arch', 'max_t_count')
+                    net = bi_gru_unroll(net=net,
+                                        seq_len=seq_len_after_conv_layer2,
+                                        num_hidden_gru_list=num_hidden_rnn_list,
+                                        num_gru_layer=num_rnn_layer,
+                                        dropout=0.,
+                                        is_batchnorm=is_batchnorm,
+                                        max_seq_len=max_seq_len)
+                else:
+                    net = bi_gru_unroll(net=net,
+                                        seq_len=seq_len_after_conv_layer2,
+                                        num_hidden_gru_list=num_hidden_rnn_list,
+                                        num_gru_layer=num_rnn_layer,
+                                        dropout=0.,
+                                        is_batchnorm=is_batchnorm)
             else:
                 raise Exception('rnn_type should be one of the followings, bilstm,gru,bigru')
 
@@ -164,10 +174,8 @@ def arch(args, seq_len=-1):
             conv_layer1_stride = tuple(json.loads(args.config.get("arch", "conv_layer1_stride")))
             conv_layer2_filter_dim = tuple(json.loads(args.config.get("arch", "conv_layer2_filter_dim")))
             conv_layer2_stride = tuple(json.loads(args.config.get("arch", "conv_layer2_stride")))
-            if seq_len == -1:
+            if seq_len is None:
                 seq_len = args.config.getint('arch', 'max_t_count')
-            else:
-                seq_len = seq_len
             seq_len_after_conv_layer1 = int(
                 math.floor((seq_len - conv_layer1_filter_dim[0]) / conv_layer1_stride[0])) + 1
             seq_len_after_conv_layer2 = int(

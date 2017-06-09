@@ -36,12 +36,14 @@ class STTMetric(mx.metric.EvalMetric):
             log = LogUtil().getlogger()
             labelUtil = LabelUtil.getInstance()
         self.batch_loss = 0.
+
         for label, pred in zip(labels, preds):
             label = label.asnumpy()
             pred = pred.asnumpy()
 
+            seq_length = len(pred) / int(int(self.batch_size) / int(self.num_gpu))
+
             for i in range(int(int(self.batch_size) / int(self.num_gpu))):
-                seq_length = len(pred) / int(int(self.batch_size) / int(self.num_gpu))
                 l = remove_blank(label[i])
                 p = []
                 for k in range(int(seq_length)):

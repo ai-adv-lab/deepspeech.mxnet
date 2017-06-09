@@ -18,8 +18,7 @@ def batchnorm(net,
                                momentum=momentum,
                                fix_gamma=fix_gamma,
                                use_global_stats=use_global_stats,
-                               output_mean_var=output_mean_var,
-                               name=name
+                               output_mean_var=output_mean_var
                                )
     else:
         net = mx.sym.BatchNorm(data=net,
@@ -27,7 +26,6 @@ def batchnorm(net,
                                momentum=momentum,
                                fix_gamma=fix_gamma,
                                use_global_stats=use_global_stats,
-                               output_mean_var=output_mean_var,
-                               name=name
+                               output_mean_var=output_mean_var
                                )
     return net

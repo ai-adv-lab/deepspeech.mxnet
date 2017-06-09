@@ -7,8 +7,7 @@ from config_util import get_checkpoint_path, parse_contexts
 from stt_metric import STTMetric
 #tensorboard setting
 from tensorboard import SummaryWriter
-import json
-
+import numpy as np
 
 
 def get_initializer(args):
@@ -29,7 +28,6 @@ class SimpleLRScheduler(mx.lr_scheduler.LRScheduler):
     def __call__(self, num_update):
         return self.learning_rate
 
-
 def do_training(args, module, data_train, data_val, begin_epoch=0):
     from distutils.dir_util import mkpath
     from log_util import LogUtil
@@ -37,7 +35,7 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
     log = LogUtil().getlogger()
     mkpath(os.path.dirname(get_checkpoint_path(args)))
 
-    #seq_len = args.config.get('arch', 'max_t_count')
+    seq_len = args.config.get('arch', 'max_t_count')
     batch_size = args.config.getint('common', 'batch_size')
     save_checkpoint_every_n_epoch = args.config.getint('common', 'save_checkpoint_every_n_epoch')
     save_checkpoint_every_n_batch = args.config.getint('common', 'save_checkpoint_every_n_batch')
@@ -46,9 +44,9 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
 
     contexts = parse_contexts(args)
     num_gpu = len(contexts)
-    eval_metric = STTMetric(batch_size=batch_size, num_gpu=num_gpu, is_logging=enable_logging_validation_metric,is_epoch_end=True)
+    eval_metric = STTMetric(batch_size=batch_size, num_gpu=num_gpu, seq_length=seq_len,is_logging=enable_logging_validation_metric,is_epoch_end=True)
     # tensorboard setting
-    loss_metric = STTMetric(batch_size=batch_size, num_gpu=num_gpu, is_logging=enable_logging_train_metric,is_epoch_end=False)
+    loss_metric = STTMetric(batch_size=batch_size, num_gpu=num_gpu, seq_length=seq_len,is_logging=enable_logging_train_metric,is_epoch_end=False)
 
     optimizer = args.config.get('optimizer', 'optimizer')
     learning_rate = args.config.getfloat('train', 'learning_rate')
@@ -56,8 +54,8 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
 
     mode = args.config.get('common', 'mode')
     num_epoch = args.config.getint('train', 'num_epoch')
-    clip_gradient = args.config.getfloat('optimizer', 'clip_gradient')
-    weight_decay = args.config.getfloat('optimizer', 'weight_decay')
+    clip_gradient = args.config.getfloat('train', 'clip_gradient')
+    weight_decay = args.config.getfloat('train', 'weight_decay')
     save_optimizer_states = args.config.getboolean('train', 'save_optimizer_states')
     show_every = args.config.getint('train', 'show_every')
     optimizer_params_dictionary = json.loads(args.config.get('optimizer', 'optimizer_params_dictionary'))

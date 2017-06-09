@@ -89,7 +89,7 @@ def gru_unroll(net, num_gru_layer, seq_len,  num_hidden_gru_list, dropout=0., is
                     batchnorm_gamma.append(mx.sym.Variable(prefix + "t%d_i2h_gamma" % seqidx))
                     batchnorm_beta.append(mx.sym.Variable(prefix + "t%d_i2h_beta" % seqidx))
             else:
-                for seqidx in range(seq_len):
+                for seqidx in range(max_seq_len):
                     batchnorm_gamma.append(mx.sym.Variable(prefix + "t%d_i2h_gamma" % seqidx))
                     batchnorm_beta.append(mx.sym.Variable(prefix + "t%d_i2h_beta" % seqidx))
 

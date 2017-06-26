@@ -79,7 +79,7 @@ class BucketSTTIter(mx.io.DataIter):
             buckets = [i for i, j in enumerate(np.bincount(data_lengths))
                        if j >= batch_size]
         if len(buckets) == 0:
-            raise Exception('There is no valid buckets. It may occured by large batch_size for each buckets.%s max bincount:%d batch_size:%d' % (max(np.bincount(data_lengths)), batch_size))
+            raise Exception('There is no valid buckets. It may occured by large batch_size for each buckets. max bincount:%d batch_size:%d' % (max(np.bincount(data_lengths)), batch_size))
         buckets.sort()
 
         ndiscard = 0

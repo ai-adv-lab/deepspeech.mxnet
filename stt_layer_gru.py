@@ -56,7 +56,7 @@ def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., is_
                                        weight=param.trans_h2h_weight,
                                        bias=param.trans_h2h_bias,
                                        num_hidden=num_hidden,
-                                       name="t%d_l%d_trans_i2h" % (seqidx, layeridx))
+                                       name="t%d_l%d_trans_h2h" % (seqidx, layeridx))
     h_trans = htrans_i2h + htrans_h2h
     h_trans_active = mx.sym.Activation(h_trans, act_type="tanh")
     next_h = prev_state.h + update_gate * (h_trans_active - prev_state.h)
@@ -64,7 +64,7 @@ def gru(num_hidden, indata, prev_state, param, seqidx, layeridx, dropout=0., is_
 
 
 def gru_unroll(net, num_gru_layer, seq_len,  num_hidden_gru_list, dropout=0., is_batchnorm=False, prefix="",
-               direction="forward", max_seq_len=None):
+               direction="forward", is_bucketing=False):
     if num_gru_layer > 0:
         param_cells = []
         last_states = []
@@ -84,12 +84,11 @@ def gru_unroll(net, num_gru_layer, seq_len,  num_hidden_gru_list, dropout=0., is
         if is_batchnorm:
             batchnorm_gamma = []
             batchnorm_beta = []
-            if max_seq_len is None:
-                for seqidx in range(seq_len):
-                    batchnorm_gamma.append(mx.sym.Variable(prefix + "t%d_i2h_gamma" % seqidx))
-                    batchnorm_beta.append(mx.sym.Variable(prefix + "t%d_i2h_beta" % seqidx))
+            if is_bucketing:
+                batchnorm_gamma.append(mx.sym.Variable(prefix + "_i2h_gamma"))
+                batchnorm_beta.append(mx.sym.Variable(prefix + "_i2h_beta"))
             else:
-                for seqidx in range(max_seq_len):
+                for seqidx in range(seq_len):
                     batchnorm_gamma.append(mx.sym.Variable(prefix + "t%d_i2h_gamma" % seqidx))
                     batchnorm_beta.append(mx.sym.Variable(prefix + "t%d_i2h_beta" % seqidx))
 
@@ -111,14 +110,26 @@ def gru_unroll(net, num_gru_layer, seq_len,  num_hidden_gru_list, dropout=0., is
                 else:
                     dp_ratio = dropout
                 if is_batchnorm:
-                    next_state = gru(num_hidden_gru_list[i], indata=hidden,
-                                     prev_state=last_states[i],
-                                     param=param_cells[i],
-                                     seqidx=k, layeridx=i, dropout=dp_ratio,
-                                     is_batchnorm=is_batchnorm,
-                                     gamma=batchnorm_gamma[k],
-                                     beta=batchnorm_beta[k],
-                                     name=prefix + ("t%d" % seqidx))
+                    if is_bucketing:
+                        next_state = gru(num_hidden_gru_list[i], indata=hidden,
+                                         prev_state=last_states[i],
+                                         param=param_cells[i],
+                                         seqidx=k, layeridx=i, dropout=dp_ratio,
+                                         is_batchnorm=is_batchnorm,
+                                         gamma=batchnorm_gamma[0],
+                                         beta=batchnorm_beta[0],
+                                         name=prefix + ("t%d_l%d" % (seqidx, i))
+                                         )
+                    else:
+                        next_state = gru(num_hidden_gru_list[i], indata=hidden,
+                                         prev_state=last_states[i],
+                                         param=param_cells[i],
+                                         seqidx=k, layeridx=i, dropout=dp_ratio,
+                                         is_batchnorm=is_batchnorm,
+                                         gamma=batchnorm_gamma[k],
+                                         beta=batchnorm_beta[k],
+                                         name=prefix + ("t%d_l%d" % (seqidx, i))
+                                         )
                 else:
                     next_state = gru(num_hidden_gru_list[i], indata=hidden,
                                      prev_state=last_states[i],
@@ -143,7 +154,7 @@ def gru_unroll(net, num_gru_layer, seq_len,  num_hidden_gru_list, dropout=0., is
     return net
 
 
-def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_batchnorm=False, max_seq_len=None):
+def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., is_batchnorm=False, is_bucketing=False):
     if num_gru_layer > 0:
         net_forward = gru_unroll(net=net,
                                  num_gru_layer=num_gru_layer,
@@ -153,7 +164,7 @@ def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., 
                                  is_batchnorm=is_batchnorm,
                                  prefix="forward_",
                                  direction="forward",
-                                 max_seq_len=max_seq_len)
+                                 is_bucketing=is_bucketing)
         net_backward = gru_unroll(net=net,
                                   num_gru_layer=num_gru_layer,
                                   seq_len=seq_len,
@@ -162,7 +173,7 @@ def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., 
                                   is_batchnorm=is_batchnorm,
                                   prefix="backward_",
                                   direction="backward",
-                                  max_seq_len=max_seq_len)
+                                  is_bucketing=is_bucketing)
         hidden_all = []
         for i in range(seq_len):
             hidden_all.append(mx.sym.Concat(*[net_forward[i], net_backward[i]], dim=1))

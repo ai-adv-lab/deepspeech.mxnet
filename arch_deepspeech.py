@@ -127,22 +127,14 @@ def arch(args, seq_len=None):
                                  dropout=0.,
                                  is_batchnorm=is_batchnorm)
             elif rnn_type == "bigru":
-                if is_bucketing:
-                    max_seq_len = args.config.getint('arch', 'max_t_count')
-                    net = bi_gru_unroll(net=net,
-                                        seq_len=seq_len_after_conv_layer2,
-                                        num_hidden_gru_list=num_hidden_rnn_list,
-                                        num_gru_layer=num_rnn_layer,
-                                        dropout=0.,
-                                        is_batchnorm=is_batchnorm,
-                                        max_seq_len=max_seq_len)
-                else:
-                    net = bi_gru_unroll(net=net,
-                                        seq_len=seq_len_after_conv_layer2,
-                                        num_hidden_gru_list=num_hidden_rnn_list,
-                                        num_gru_layer=num_rnn_layer,
-                                        dropout=0.,
-                                        is_batchnorm=is_batchnorm)
+                net = bi_gru_unroll(net=net,
+                                    seq_len=seq_len_after_conv_layer2,
+                                    num_hidden_gru_list=num_hidden_rnn_list,
+                                    num_gru_layer=num_rnn_layer,
+                                    dropout=0.,
+                                    is_batchnorm=is_batchnorm,
+                                    is_bucketing=is_bucketing
+                                    )
             else:
                 raise Exception('rnn_type should be one of the followings, bilstm,gru,bigru')
 

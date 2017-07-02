@@ -85,8 +85,9 @@ def gru_unroll(net, num_gru_layer, seq_len,  num_hidden_gru_list, dropout=0., is
             batchnorm_gamma = []
             batchnorm_beta = []
             if is_bucketing:
-                batchnorm_gamma.append(mx.sym.Variable(prefix + "_i2h_gamma"))
-                batchnorm_beta.append(mx.sym.Variable(prefix + "_i2h_beta"))
+                for l in range(num_gru_layer):
+                    batchnorm_gamma.append(mx.sym.Variable(prefix + "l%d_i2h_gamma" % l))
+                    batchnorm_beta.append(mx.sym.Variable(prefix + "l%d_i2h_beta" % l))
             else:
                 for seqidx in range(seq_len):
                     batchnorm_gamma.append(mx.sym.Variable(prefix + "t%d_i2h_gamma" % seqidx))
@@ -116,8 +117,8 @@ def gru_unroll(net, num_gru_layer, seq_len,  num_hidden_gru_list, dropout=0., is
                                          param=param_cells[i],
                                          seqidx=k, layeridx=i, dropout=dp_ratio,
                                          is_batchnorm=is_batchnorm,
-                                         gamma=batchnorm_gamma[0],
-                                         beta=batchnorm_beta[0],
+                                         gamma=batchnorm_gamma[i],
+                                         beta=batchnorm_beta[i],
                                          name=prefix + ("t%d_l%d" % (seqidx, i))
                                          )
                     else:

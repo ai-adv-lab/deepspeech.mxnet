@@ -66,22 +66,17 @@ class BucketSTTIter(mx.io.DataIter):
             audio_paths = audio_paths
             texts = texts
         self.trainDataList = zip(durations, audio_paths, texts)
-        # to shuffle data
-        if not sort_by_duration:
-            random.shuffle(self.trainDataList)
 
         self.trainDataIter = iter(self.trainDataList)
         self.is_first_epoch = True
 
-        data_lengths = [datagen.featurize(a).shape[0] for a in audio_paths]
-
+        data_lengths = [int(d*100) for d in durations]
         if len(buckets) == 0:
             buckets = [i for i, j in enumerate(np.bincount(data_lengths))
                        if j >= batch_size]
         if len(buckets) == 0:
             raise Exception('There is no valid buckets. It may occured by large batch_size for each buckets. max bincount:%d batch_size:%d' % (max(np.bincount(data_lengths)), batch_size))
         buckets.sort()
-
         ndiscard = 0
         self.data = [[] for _ in buckets]
         for i, sent in enumerate(data_lengths):
@@ -92,7 +87,7 @@ class BucketSTTIter(mx.io.DataIter):
             self.data[buck].append(self.trainDataList[i])
         if ndiscard != 0:
             print("WARNING: discarded %d sentences longer than the largest bucket."% ndiscard)
-
+        
         self.buckets = buckets
         self.nddata = []
         self.ndlabel = []
@@ -114,7 +109,6 @@ class BucketSTTIter(mx.io.DataIter):
         random.shuffle(self.idx)
         for buck in self.data:
             np.random.shuffle(buck)
-        self.is_first_epoch = False
 
     def next(self):
         """Returns the next batch of data."""

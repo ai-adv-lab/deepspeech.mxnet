@@ -94,15 +94,23 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
     #tensorboard setting
     tblog_dir = args.config.get('common', 'tensorboard_log_dir')
     summary_writer = SummaryWriter(tblog_dir)
+
+
+    if mode == "train":
+        sort_by_duration = True
+    else:
+        sort_by_duration = False
+
+    if not sort_by_duration:
+        data_train.reset()
+
     while True:
 
         if n_epoch >= num_epoch:
             break
-
         loss_metric.reset()
         log.info('---------train---------')
         for nbatch, data_batch in enumerate(data_train):
-
             module.forward_backward(data_batch)
             module.update()
             # tensorboard setting
@@ -129,6 +137,7 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
         assert curr_acc is not None, 'cannot find Acc_exclude_padding in eval metric'
 
         data_train.reset()
+        data_train.is_first_epoch = False
 
         # tensorboard setting
         train_cer, train_n_label, train_l_dist, train_ctc_loss = loss_metric.get_name_value()

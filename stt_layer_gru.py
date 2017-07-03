@@ -183,7 +183,7 @@ def bi_gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0., 
 
 
 def bi_gru_unroll_two_input_two_output(net1, net2, num_gru_layer, seq_len, num_hidden_gru_list, dropout=0.,
-                                       is_batchnorm=False):
+                                       is_batchnorm=False, is_bucketing=False):
     if num_gru_layer > 0:
         net_forward = gru_unroll(net=net1,
                                  num_gru_layer=num_gru_layer,
@@ -192,7 +192,8 @@ def bi_gru_unroll_two_input_two_output(net1, net2, num_gru_layer, seq_len, num_h
                                  dropout=dropout,
                                  is_batchnorm=is_batchnorm,
                                  prefix="forward_",
-                                 direction="forward")
+                                 direction="forward",
+                                 is_bucketing=is_bucketing)
         net_backward = gru_unroll(net=net2,
                                   num_gru_layer=num_gru_layer,
                                   seq_len=seq_len,
@@ -200,7 +201,8 @@ def bi_gru_unroll_two_input_two_output(net1, net2, num_gru_layer, seq_len, num_h
                                   dropout=dropout,
                                   is_batchnorm=is_batchnorm,
                                   prefix="backward_",
-                                  direction="backward")
+                                  direction="backward",
+                                  is_bucketing=is_bucketing)
         return net_forward, net_backward
     else:
         return net1, net2

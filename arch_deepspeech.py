@@ -1,6 +1,12 @@
+# pylint: disable=C0111, too-many-statements, too-many-locals
+# pylint: too-many-arguments,too-many-instance-attributes,too-many-locals,redefined-outer-name,fixme
+# pylint: disable=superfluous-parens, no-member, invalid-name
+"""
+architecture file for deep speech 2 model
+"""
 import json
 import math
-
+import argparse
 import mxnet as mx
 
 from stt_layer_batchnorm import batchnorm
@@ -10,10 +16,12 @@ from stt_layer_gru import bi_gru_unroll, gru_unroll
 from stt_layer_lstm import bi_lstm_unroll
 from stt_layer_slice import slice_symbol_to_seq_symobls
 from stt_layer_warpctc import warpctc_layer
-import argparse
 
 
 def prepare_data(args):
+    """
+    set atual shape of data
+    """
     rnn_type = args.config.get("arch", "rnn_type")
     num_rnn_layer = args.config.getint("arch", "num_rnn_layer")
     num_hidden_rnn_list = json.loads(args.config.get("arch", "num_hidden_rnn_list"))
@@ -21,26 +29,29 @@ def prepare_data(args):
     batch_size = args.config.getint("common", "batch_size")
 
     if rnn_type == 'lstm':
-        init_c = [('l%d_init_c' % l, (batch_size, num_hidden_rnn_list[l])) for l in range(num_rnn_layer)]
-        init_h = [('l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l])) for l in range(num_rnn_layer)]
+        init_c = [('l%d_init_c' % l, (batch_size, num_hidden_rnn_list[l]))
+                  for l in range(num_rnn_layer)]
+        init_h = [('l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l]))
+                  for l in range(num_rnn_layer)]
     elif rnn_type == 'bilstm':
-        forward_init_c = [('forward_l%d_init_c' % l, (batch_size, num_hidden_rnn_list[l])) for l in
-                          range(num_rnn_layer)]
-        backward_init_c = [('backward_l%d_init_c' % l, (batch_size, num_hidden_rnn_list[l])) for l in
-                           range(num_rnn_layer)]
+        forward_init_c = [('forward_l%d_init_c' % l, (batch_size, num_hidden_rnn_list[l]))
+                          for l in range(num_rnn_layer)]
+        backward_init_c = [('backward_l%d_init_c' % l, (batch_size, num_hidden_rnn_list[l]))
+                           for l in range(num_rnn_layer)]
         init_c = forward_init_c + backward_init_c
-        forward_init_h = [('forward_l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l])) for l in
-                          range(num_rnn_layer)]
-        backward_init_h = [('backward_l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l])) for l in
-                           range(num_rnn_layer)]
+        forward_init_h = [('forward_l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l]))
+                          for l in range(num_rnn_layer)]
+        backward_init_h = [('backward_l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l]))
+                           for l in range(num_rnn_layer)]
         init_h = forward_init_h + backward_init_h
     elif rnn_type == 'gru':
-        init_h = [('l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l])) for l in range(num_rnn_layer)]
+        init_h = [('l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l]))
+                  for l in range(num_rnn_layer)]
     elif rnn_type == 'bigru':
-        forward_init_h = [('forward_l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l])) for l in
-                          range(num_rnn_layer)]
-        backward_init_h = [('backward_l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l])) for l in
-                           range(num_rnn_layer)]
+        forward_init_h = [('forward_l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l]))
+                          for l in range(num_rnn_layer)]
+        backward_init_h = [('backward_l%d_init_h' % l, (batch_size, num_hidden_rnn_list[l]))
+                           for l in range(num_rnn_layer)]
         init_h = forward_init_h + backward_init_h
     else:
         raise Exception('network type should be one of the lstm,bilstm,gru,bigru')
@@ -53,13 +64,18 @@ def prepare_data(args):
 
 
 def arch(args, seq_len=None):
-    if type(args) is argparse.Namespace:
+    """
+    define deep speech 2 network
+    """
+    if isinstance(args, argparse.Namespace):
         mode = args.config.get("common", "mode")
         if mode == "train":
             channel_num = args.config.getint("arch", "channel_num")
-            conv_layer1_filter_dim = tuple(json.loads(args.config.get("arch", "conv_layer1_filter_dim")))
+            conv_layer1_filter_dim = \
+                tuple(json.loads(args.config.get("arch", "conv_layer1_filter_dim")))
             conv_layer1_stride = tuple(json.loads(args.config.get("arch", "conv_layer1_stride")))
-            conv_layer2_filter_dim = tuple(json.loads(args.config.get("arch", "conv_layer2_filter_dim")))
+            conv_layer2_filter_dim = \
+                tuple(json.loads(args.config.get("arch", "conv_layer2_filter_dim")))
             conv_layer2_stride = tuple(json.loads(args.config.get("arch", "conv_layer2_stride")))
 
             rnn_type = args.config.get("arch", "rnn_type")
@@ -88,8 +104,7 @@ def arch(args, seq_len=None):
                        filter_dimension=conv_layer1_filter_dim,
                        stride=conv_layer1_stride,
                        no_bias=is_batchnorm,
-                       name='conv1'
-                       )
+                       name='conv1')
             if is_batchnorm:
                 # batch norm normalizes axis 1
                 net = batchnorm(net, name="conv1_batchnorm")
@@ -99,8 +114,7 @@ def arch(args, seq_len=None):
                        filter_dimension=conv_layer2_filter_dim,
                        stride=conv_layer2_stride,
                        no_bias=is_batchnorm,
-                       name='conv2'
-                       )
+                       name='conv2')
             # if is_batchnorm:
             #     # batch norm normalizes axis 1
             #     net = batchnorm(net, name="conv2_batchnorm")
@@ -110,7 +124,8 @@ def arch(args, seq_len=None):
             seq_len_after_conv_layer1 = int(
                 math.floor((seq_len - conv_layer1_filter_dim[0]) / conv_layer1_stride[0])) + 1
             seq_len_after_conv_layer2 = int(
-                math.floor((seq_len_after_conv_layer1 - conv_layer2_filter_dim[0]) / conv_layer2_stride[0])) + 1
+                math.floor((seq_len_after_conv_layer1 - conv_layer2_filter_dim[0])
+                           / conv_layer2_stride[0])) + 1
             net = slice_symbol_to_seq_symobls(net=net, seq_len=seq_len_after_conv_layer2, axis=1)
             if rnn_type == "bilstm":
                 net = bi_lstm_unroll(net=net,
@@ -118,14 +133,16 @@ def arch(args, seq_len=None):
                                      num_hidden_lstm_list=num_hidden_rnn_list,
                                      num_lstm_layer=num_rnn_layer,
                                      dropout=0.,
-                                     is_batchnorm=is_batchnorm)
+                                     is_batchnorm=is_batchnorm,
+                                     is_bucketing=is_bucketing)
             elif rnn_type == "gru":
                 net = gru_unroll(net=net,
                                  seq_len=seq_len_after_conv_layer2,
                                  num_hidden_gru_list=num_hidden_rnn_list,
                                  num_gru_layer=num_rnn_layer,
                                  dropout=0.,
-                                 is_batchnorm=is_batchnorm)
+                                 is_batchnorm=is_batchnorm,
+                                 is_bucketing=is_bucketing)
             elif rnn_type == "bigru":
                 net = bi_gru_unroll(net=net,
                                     seq_len=seq_len_after_conv_layer2,
@@ -133,51 +150,46 @@ def arch(args, seq_len=None):
                                     num_gru_layer=num_rnn_layer,
                                     dropout=0.,
                                     is_batchnorm=is_batchnorm,
-                                    is_bucketing=is_bucketing
-                                    )
+                                    is_bucketing=is_bucketing)
             else:
                 raise Exception('rnn_type should be one of the followings, bilstm,gru,bigru')
 
             # rear fc layers
-            net = sequence_fc(net=net, seq_len=seq_len_after_conv_layer2, num_layer=num_rear_fc_layers, prefix="rear",
-                              num_hidden_list=num_hidden_rear_fc_list, act_type_list=act_type_rear_fc_list,
+            net = sequence_fc(net=net, seq_len=seq_len_after_conv_layer2,
+                              num_layer=num_rear_fc_layers, prefix="rear",
+                              num_hidden_list=num_hidden_rear_fc_list,
+                              act_type_list=act_type_rear_fc_list,
                               is_batchnorm=is_batchnorm)
-            #
-            # if is_batchnorm:
-            #     hidden_all = []
-            #     # batch norm normalizes axis 1
-            #     for seq_index in range(seq_len_after_conv_layer2):
-            #         hidden = net[seq_index]
-            #         hidden = batchnorm(hidden)
-            #         hidden_all.append(hidden)
-            #     net = hidden_all
-
             # warpctc layer
             net = warpctc_layer(net=net,
                                 seq_len=seq_len_after_conv_layer2,
                                 label=label,
                                 num_label=num_label,
-                                character_classes_count=(args.config.getint('arch', 'n_classes') + 1)
-                                )
+                                character_classes_count=
+                                (args.config.getint('arch', 'n_classes') + 1))
             args.config.set('arch', 'max_t_count', str(seq_len_after_conv_layer2))
             return net
         elif mode == 'load' or mode == 'predict':
-            conv_layer1_filter_dim = tuple(json.loads(args.config.get("arch", "conv_layer1_filter_dim")))
+            conv_layer1_filter_dim = \
+                tuple(json.loads(args.config.get("arch", "conv_layer1_filter_dim")))
             conv_layer1_stride = tuple(json.loads(args.config.get("arch", "conv_layer1_stride")))
-            conv_layer2_filter_dim = tuple(json.loads(args.config.get("arch", "conv_layer2_filter_dim")))
+            conv_layer2_filter_dim = \
+                tuple(json.loads(args.config.get("arch", "conv_layer2_filter_dim")))
             conv_layer2_stride = tuple(json.loads(args.config.get("arch", "conv_layer2_stride")))
             if seq_len is None:
                 seq_len = args.config.getint('arch', 'max_t_count')
             seq_len_after_conv_layer1 = int(
                 math.floor((seq_len - conv_layer1_filter_dim[0]) / conv_layer1_stride[0])) + 1
             seq_len_after_conv_layer2 = int(
-                math.floor((seq_len_after_conv_layer1 - conv_layer2_filter_dim[0]) / conv_layer2_stride[0])) + 1
+                math.floor((seq_len_after_conv_layer1 - conv_layer2_filter_dim[0])
+                           / conv_layer2_stride[0])) + 1
 
             args.config.set('arch', 'max_t_count', str(seq_len_after_conv_layer2))
         else:
             raise Exception('mode must be the one of the followings - train,predict,load')
     else:
-        raise Exception('type of args should be one of the argparse.Namespace for fixed length model or integer for variable length model')
+        raise Exception('type of args should be one of the argparse.' +
+                        'Namespace for fixed length model or integer for variable length model')
 
 
 class BucketingArch(object):
@@ -188,12 +200,9 @@ class BucketingArch(object):
         args = self.args
         net = arch(args, seq_len)
         init_states = prepare_data(args)
-        # arg_shape, output_shape, aux_shape = net.infer_shape(data=(batch_size, max_t_count, 1353), label=(batch_size, max_label_length))
         init_state_names = [x[0] for x in init_states]
         init_state_names.insert(0, 'data')
         return net, init_state_names, ('label',)
 
     def get_sym_gen(self):
         return self.sym_gen
-
-

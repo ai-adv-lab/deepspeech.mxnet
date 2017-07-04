@@ -6,7 +6,7 @@ def batchnorm(net,
               beta=None,
               eps=0.001,
               momentum=0.9,
-              fix_gamma=True,
+              fix_gamma=False,
               use_global_stats=False,
               output_mean_var=False,
               name=None):

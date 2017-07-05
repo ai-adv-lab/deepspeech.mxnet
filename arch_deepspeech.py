@@ -115,9 +115,9 @@ def arch(args, seq_len=None):
                        stride=conv_layer2_stride,
                        no_bias=is_batchnorm,
                        name='conv2')
-            # if is_batchnorm:
-            #     # batch norm normalizes axis 1
-            #     net = batchnorm(net, name="conv2_batchnorm")
+            if is_batchnorm:
+                # batch norm normalizes axis 1
+                net = batchnorm(net, name="conv2_batchnorm")
 
             net = mx.sym.transpose(data=net, axes=(0, 2, 1, 3))
             net = mx.sym.Reshape(data=net, shape=(0, 0, -3))

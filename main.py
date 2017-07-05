@@ -1,6 +1,3 @@
-# pylint: disable=C0111, too-many-statements, too-many-locals, too-few-public-methods, too-many-branches
-# pylint: too-many-arguments,too-many-instance-attributes,too-many-locals,redefined-outer-name,fixme
-# pylint: disable=superfluous-parens, no-member, invalid-name, anomalous-backslash-in-string, redefined-outer-name
 import json
 import os
 import sys
@@ -20,15 +17,15 @@ from stt_bucketing_module import STTBucketingModule
 from stt_io_bucketingiter import BucketSTTIter
 sys.path.insert(0, "../../python")
 
-
-
-
-
 # os.environ['MXNET_ENGINE_TYPE'] = "NaiveEngine"
 os.environ['MXNET_ENGINE_TYPE'] = "ThreadedEnginePerDevice"
 os.environ['MXNET_ENABLE_GPU_P2P'] = "0"
 
-WHCS = namedtuple("WHCS", ["width", "height", "channel", "stride"])
+class WHCS:
+    width = 0
+    height = 0
+    channel = 0
+    stride = 0
 
 class ConfigLogger(object):
     def __init__(self, log):

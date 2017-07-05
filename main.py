@@ -60,6 +60,7 @@ def load_data(args):
     language = args.config.get('data', 'language')
 
     labelUtil = LabelUtil.getInstance()
+    log = LogUtil().getlogger()
     if language == "en":
         if is_bi_graphemes:
             try:
@@ -87,9 +88,11 @@ def load_data(args):
 
         if mode == "train":
             if overwrite_meta_files:
+                log.info("Generate mean and std from samples")
                 normalize_target_k = args.config.getint('train', 'normalize_target_k')
                 datagen.sample_normalize(normalize_target_k, True)
             else:
+                log.info("Read mean and std from meta files")
                 datagen.get_meta_from_file(
                     np.loadtxt(generate_file_path(save_dir, model_name, 'feats_mean')),
                     np.loadtxt(generate_file_path(save_dir, model_name, 'feats_std')))

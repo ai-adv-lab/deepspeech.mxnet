@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import json
 import random
-
 import numpy as np
 from stt_utils import calc_feat_dim, spectrogram_from_file
 
@@ -10,6 +9,7 @@ from config_util import generate_file_path
 from log_util import LogUtil
 from label_util import LabelUtil
 from stt_bi_graphemes_util import generate_bi_graphemes_label
+from multiprocessing import cpu_count, Process, Manager
 
 class DataGenerator(object):
     def __init__(self, save_dir, model_name, step=10, window=20, max_freq=8000, desc_file=None):
@@ -203,37 +203,59 @@ class DataGenerator(object):
         return self.iterate(self.val_audio_paths, self.val_texts,
                             minibatch_size)
 
+    def preprocess_sample_normalize(self, threadIndex, audio_paths, overwrite, return_dict):
+        if len(audio_paths) > 0:
+            audio_clip = audio_paths[0]
+            feat = self.featurize(audio_clip=audio_clip, overwrite=overwrite)
+            feat_squared = np.square(feat)
+            count = float(feat.shape[0])
+            dim = feat.shape[1]
+            if len(audio_paths) > 1:
+                for audio_path in audio_paths[1:]:
+                    next_feat = self.featurize(audio_clip=audio_path, overwrite=overwrite)
+                    next_feat_squared = np.square(next_feat)
+                    feat_vertically_stacked = np.concatenate((feat, next_feat)).reshape(-1, dim)
+                    feat = np.sum(feat_vertically_stacked, axis=0, keepdims=True)
+                    feat_squared_vertically_stacked = np.concatenate(
+                        (feat_squared, next_feat_squared)).reshape(-1, dim)
+                    feat_squared = np.sum(feat_squared_vertically_stacked, axis=0, keepdims=True)
+                    count += float(next_feat.shape[0])
+            return_dict[threadIndex] = {'feat': feat, 'feat_squared': feat_squared, 'count': count}
+
     def sample_normalize(self, k_samples=1000, overwrite=False):
         """ Estimate the mean and std of the features from the training set
         Params:
             k_samples (int): Use this number of samples for estimation
         """
+        log = LogUtil().getlogger()
+        log.info("Starts sample normalize")
         # if k_samples is negative then it goes through total dataset
         if k_samples < 0:
-            audio_paths_iter = iter(self.audio_paths)
+            audio_paths = self.audio_paths
+
         # using sample
         else:
             k_samples = min(k_samples, len(self.train_audio_paths))
             samples = self.rng.sample(self.train_audio_paths, k_samples)
-            audio_paths_iter = iter(samples)
-        audio_clip = audio_paths_iter.next()
-        feat = self.featurize(audio_clip=audio_clip, overwrite=overwrite)
-        feat_squared = np.square(feat)
-        count = float(feat.shape[0])
-        dim = feat.shape[1]
+            audio_paths = samples
+        manager = Manager()
+        return_dict = manager.dict()
+        jobs = []
+        for threadIndex in range(cpu_count()):
+            proc = Process(target=self.preprocess_sample_normalize, args=(threadIndex, audio_paths, overwrite, return_dict))
+            jobs.append(proc)
+            proc.start()
+        for proc in jobs:
+            proc.join()
 
-        for iter_index in range(len(samples) - 1):
-            next_feat = self.featurize(audio_clip=audio_paths_iter.next(), overwrite=overwrite)
-            next_feat_squared = np.square(next_feat)
-            feat_vertically_stacked = np.concatenate((feat, next_feat)).reshape(-1, dim)
-            feat = np.sum(feat_vertically_stacked, axis=0, keepdims=True)
-            feat_squared_vertically_stacked = np.concatenate(
-                (feat_squared, next_feat_squared)).reshape(-1, dim)
-            feat_squared = np.sum(feat_squared_vertically_stacked, axis=0, keepdims=True)
-            count += float(next_feat.shape[0])
+        feat = np.sum(np.vstack([item['feat'] for item in return_dict.values()]), axis=0)
+        count = sum([item['count'] for item in return_dict.values()])
+        feat_squared = np.sum(np.vstack([item['feat_squared'] for item in return_dict.values()]), axis=0)
+
         self.feats_mean = feat / float(count)
         self.feats_std = np.sqrt(feat_squared / float(count) - np.square(self.feats_mean))
         np.savetxt(
             generate_file_path(self.save_dir, self.model_name, 'feats_mean'), self.feats_mean)
         np.savetxt(
             generate_file_path(self.save_dir, self.model_name, 'feats_std'), self.feats_std)
+        log.info("End sample normalize")

@@ -59,6 +59,7 @@ def load_data(args):
     model_name = args.config.get('common', 'prefix')
     is_bi_graphemes = args.config.getboolean('common', 'is_bi_graphemes')
     overwrite_meta_files = args.config.getboolean('train', 'overwrite_meta_files')
+    max_duration = args.config.getfloat('data', 'max_duration')
     language = args.config.get('data', 'language')
 
     labelUtil = LabelUtil.getInstance()
@@ -79,7 +80,7 @@ def load_data(args):
         data_json = args.config.get('data', 'train_json')
         val_json = args.config.get('data', 'val_json')
         datagen = DataGenerator(save_dir=save_dir, model_name=model_name)
-        datagen.load_train_data(data_json)
+        datagen.load_train_data(data_json, max_duration=max_duration)
         # test bigramphems
 
         if overwrite_meta_files and is_bi_graphemes:
@@ -95,18 +96,18 @@ def load_data(args):
                 datagen.get_meta_from_file(
                     np.loadtxt(generate_file_path(save_dir, model_name, 'feats_mean')),
                     np.loadtxt(generate_file_path(save_dir, model_name, 'feats_std')))
-            datagen.load_validation_data(val_json)
+            datagen.load_validation_data(val_json, max_duration=max_duration)
 
         elif mode == "load":
             # get feat_mean and feat_std to normalize dataset
             datagen.get_meta_from_file(
                 np.loadtxt(generate_file_path(save_dir, model_name, 'feats_mean')),
                 np.loadtxt(generate_file_path(save_dir, model_name, 'feats_std')))
-            datagen.load_validation_data(val_json)
+            datagen.load_validation_data(val_json, max_duration=max_duration)
     elif mode == 'predict':
         test_json = args.config.get('data', 'test_json')
         datagen = DataGenerator(save_dir=save_dir, model_name=model_name)
-        datagen.load_train_data(test_json)
+        datagen.load_train_data(test_json, max_duration=max_duration)
         datagen.get_meta_from_file(
             np.loadtxt(generate_file_path(save_dir, model_name, 'feats_mean')),
             np.loadtxt(generate_file_path(save_dir, model_name, 'feats_std')))

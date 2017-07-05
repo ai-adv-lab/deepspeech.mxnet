@@ -107,11 +107,11 @@ class DataGenerator(object):
             raise Exception("Invalid partition to load metadata. "
                             "Must be train/validation/test")
 
-    def load_train_data(self, desc_file):
-        self.load_metadata_from_desc_file(desc_file, 'train')
+    def load_train_data(self, desc_file, max_duration):
+        self.load_metadata_from_desc_file(desc_file, 'train', max_duration=max_duration)
 
-    def load_validation_data(self, desc_file):
-        self.load_metadata_from_desc_file(desc_file, 'validation')
+    def load_validation_data(self, desc_file, max_duration):
+        self.load_metadata_from_desc_file(desc_file, 'validation', max_duration=max_duration)
 
     @staticmethod
     def sort_by_duration(durations, audio_paths, texts):

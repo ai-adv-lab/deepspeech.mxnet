@@ -69,7 +69,8 @@ def arch(args, seq_len=None):
     """
     if isinstance(args, argparse.Namespace):
         mode = args.config.get("common", "mode")
-        if mode == "train":
+        is_bucketing = args.config.getboolean("arch", "is_bucketing")
+        if mode == "train" or is_bucketing:
             channel_num = args.config.getint("arch", "channel_num")
             conv_layer1_filter_dim = \
                 tuple(json.loads(args.config.get("arch", "conv_layer1_filter_dim")))
@@ -83,7 +84,6 @@ def arch(args, seq_len=None):
             num_hidden_rnn_list = json.loads(args.config.get("arch", "num_hidden_rnn_list"))
 
             is_batchnorm = args.config.getboolean("arch", "is_batchnorm")
-            is_bucketing = args.config.getboolean("arch", "is_bucketing")
 
             if seq_len is None:
                 seq_len = args.config.getint('arch', 'max_t_count')
@@ -106,8 +106,8 @@ def arch(args, seq_len=None):
                        no_bias=is_batchnorm,
                        name='conv1')
             if is_batchnorm:
-                # batch norm normalizes axis 1
-                net = batchnorm(net, name="conv1_batchnorm")
+               # batch norm normalizes axis 1
+               net = batchnorm(net, name="conv1_batchnorm")
 
             net = conv(net=net,
                        channels=channel_num,
@@ -115,9 +115,9 @@ def arch(args, seq_len=None):
                        stride=conv_layer2_stride,
                        no_bias=is_batchnorm,
                        name='conv2')
-            if is_batchnorm:
-                # batch norm normalizes axis 1
-                net = batchnorm(net, name="conv2_batchnorm")
+            # if is_batchnorm:
+            #     # batch norm normalizes axis 1
+            #     net = batchnorm(net, name="conv2_batchnorm")
 
             net = mx.sym.transpose(data=net, axes=(0, 2, 1, 3))
             net = mx.sym.Reshape(data=net, shape=(0, 0, -3))
@@ -187,9 +187,6 @@ def arch(args, seq_len=None):
             args.config.set('arch', 'max_t_count', str(seq_len_after_conv_layer2))
         else:
             raise Exception('mode must be the one of the followings - train,predict,load')
-    else:
-        raise Exception('type of args should be one of the argparse.' +
-                        'Namespace for fixed length model or integer for variable length model')
 
 
 class BucketingArch(object):

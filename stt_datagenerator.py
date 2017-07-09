@@ -260,15 +260,3 @@ class DataGenerator(object):
         np.savetxt(
             generate_file_path(self.save_dir, self.model_name, 'feats_std'), self.feats_std)
         log.info("End sample normalize")
-
-    def fit_train(self, k_samples=1000):
-        """ Estimate the mean and std of the features from the training set
-        Params:
-            k_samples (int): Use this number of samples for estimation
-        """
-        k_samples = min(k_samples, len(self.train_audio_paths))
-        samples = self.rng.sample(self.train_audio_paths, k_samples)
-        feats = [self.featurize(s) for s in samples]
-        feats = np.vstack(feats)
-        self.feats_mean = np.mean(feats, axis=0)
-        self.feats_std = np.std(feats, axis=0)

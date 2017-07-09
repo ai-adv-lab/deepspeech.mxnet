@@ -24,7 +24,8 @@ class BucketSTTIter(mx.io.DataIter):
                  sort_by_duration=True,
                  is_bi_graphemes=False,
                  partition="train",
-                 buckets=[]
+                 buckets=[],
+                 save_feature_as_csvfile=False
                  ):
         super(BucketSTTIter, self).__init__()
 
@@ -100,6 +101,7 @@ class BucketSTTIter(mx.io.DataIter):
 
         self.provide_data = [('data', (self.batch_size, self.default_bucket_key , width * height))] + init_states
         self.provide_label = [('label', (self.batch_size, self.maxLabelLength))]
+        self.save_feature_as_csvfile=save_feature_as_csvfile
 
         #self.reset()
 
@@ -126,12 +128,13 @@ class BucketSTTIter(mx.io.DataIter):
         if self.is_first_epoch:
             data_set = self.datagen.prepare_minibatch(audio_paths, texts, overwrite=True,
                                                       is_bi_graphemes=self.is_bi_graphemes,
-                                                      seq_length=self.buckets[i]
-                                                      )
+                                                      seq_length=self.buckets[i],
+                                                      save_feature_as_csvfile=self.save_feature_as_csvfile)
         else:
             data_set = self.datagen.prepare_minibatch(audio_paths, texts, overwrite=False,
                                                       is_bi_graphemes=self.is_bi_graphemes,
-                                                      seq_length=self.buckets[i])
+                                                      seq_length=self.buckets[i],
+                                                      save_feature_as_csvfile=self.save_feature_as_csvfile)
 
         data_all = [mx.nd.array(data_set['x'])] + self.init_state_arrays
         label_all = [mx.nd.array(data_set['y'])]

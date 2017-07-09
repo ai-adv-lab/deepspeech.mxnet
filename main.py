@@ -40,6 +40,20 @@ class ConfigLogger(object):
         line = data.strip()
         self.__log.info(line)
 
+def load_labelutil(labelUtil, is_bi_graphemes, language="en"):
+    if language == "en":
+        if is_bi_graphemes:
+            try:
+                labelUtil.load_unicode_set("resources/unicodemap_en_baidu_bi_graphemes.csv")
+            except:
+                raise Exception("There is no resources/unicodemap_en_baidu_bi_graphemes.csv." +
+                                " Please set overwrite_bi_graphemes_dictionary True at train section")
+        else:
+            labelUtil.load_unicode_set("resources/unicodemap_en_baidu.csv")
+    else:
+        raise Exception("Error: Language Type: %s" % language)
+
+
 
 def load_data(args):
     mode = args.config.get('common', 'mode')
@@ -56,34 +70,21 @@ def load_data(args):
     model_name = args.config.get('common', 'prefix')
     is_bi_graphemes = args.config.getboolean('common', 'is_bi_graphemes')
     overwrite_meta_files = args.config.getboolean('train', 'overwrite_meta_files')
+    overwrite_bi_graphemes_dictionary = args.config.getboolean('train', 'overwrite_bi_graphemes_dictionary')
     max_duration = args.config.getfloat('data', 'max_duration')
     language = args.config.get('data', 'language')
 
-    labelUtil = LabelUtil.getInstance()
     log = LogUtil().getlogger()
-    if language == "en":
-        if is_bi_graphemes:
-            try:
-                labelUtil.load_unicode_set("resources/unicodemap_en_baidu_bi_graphemes.csv")
-            except:
-                raise Exception("There is no resources/unicodemap_en_baidu_bi_graphemes.csv." +
-                                " Please set overwrite_meta_files at train section True")
-        else:
-            labelUtil.load_unicode_set("resources/unicodemap_en_baidu.csv")
-    else:
-        raise Exception("Error: Language Type: %s" % language)
-    args.config.set('arch', 'n_classes', str(labelUtil.get_count()))
-
+    labelUtil = LabelUtil.getInstance()
     if mode == "train" or mode == "load":
         data_json = args.config.get('data', 'train_json')
         val_json = args.config.get('data', 'val_json')
         datagen = DataGenerator(save_dir=save_dir, model_name=model_name)
         datagen.load_train_data(data_json, max_duration=max_duration)
-        # test bigramphems
-
-        if overwrite_meta_files and is_bi_graphemes:
+        if is_bi_graphemes and overwrite_bi_graphemes_dictionary:
+            load_labelutil(labelUtil=labelUtil, is_bi_graphemes=False, language=language) 
             generate_bi_graphemes_dictionary(datagen.train_texts)
-
+        load_labelutil(labelUtil=labelUtil, is_bi_graphemes=is_bi_graphemes, language=language)
         args.config.set('arch', 'n_classes', str(labelUtil.get_count()))
 
         if mode == "train":
@@ -108,6 +109,8 @@ def load_data(args):
         test_json = args.config.get('data', 'test_json')
         datagen = DataGenerator(save_dir=save_dir, model_name=model_name)
         datagen.load_train_data(test_json, max_duration=max_duration)
+        labelutil = load_labelutil(labelUtil, is_bi_graphemes, language="en")
+        args.config.set('arch', 'n_classes', str(labelUtil.get_count()))
         datagen.get_meta_from_file(
             np.loadtxt(generate_file_path(save_dir, model_name, 'feats_mean')),
             np.loadtxt(generate_file_path(save_dir, model_name, 'feats_std')))
@@ -133,6 +136,7 @@ def load_data(args):
     init_states = prepare_data_template.prepare_data(args)
     sort_by_duration = (mode == "train")
     is_bucketing = args.config.getboolean('arch', 'is_bucketing')
+    save_feature_as_csvfile = args.config.getboolean('train', 'save_feature_as_csvfile')
     if is_bucketing:
         buckets = json.loads(args.config.get('arch', 'buckets'))
         data_loaded = BucketSTTIter(partition="train",
@@ -146,7 +150,8 @@ def load_data(args):
                                     height=whcs.height,
                                     sort_by_duration=sort_by_duration,
                                     is_bi_graphemes=is_bi_graphemes,
-                                    buckets=buckets)
+                                    buckets=buckets,
+                                    save_feature_as_csvfile=save_feature_as_csvfile)
     else:
         data_loaded = STTIter(partition="train",
                               count=datagen.count,
@@ -158,7 +163,8 @@ def load_data(args):
                               width=whcs.width,
                               height=whcs.height,
                               sort_by_duration=sort_by_duration,
-                              is_bi_graphemes=is_bi_graphemes)
+                              is_bi_graphemes=is_bi_graphemes,
+                              save_feature_as_csvfile=save_feature_as_csvfile)
 
     if mode == 'train' or mode == 'load':
         if is_bucketing:
@@ -173,7 +179,8 @@ def load_data(args):
                                               height=whcs.height,
                                               sort_by_duration=False,
                                               is_bi_graphemes=is_bi_graphemes,
-                                              buckets=buckets)
+                                              buckets=buckets,
+                                              save_feature_as_csvfile=save_feature_as_csvfile)
         else:
             validation_loaded = STTIter(partition="validation",
                                         count=datagen.val_count,
@@ -185,7 +192,8 @@ def load_data(args):
                                         width=whcs.width,
                                         height=whcs.height,
                                         sort_by_duration=False,
-                                        is_bi_graphemes=is_bi_graphemes)
+                                        is_bi_graphemes=is_bi_graphemes,
+                                        save_feature_as_csvfile=save_feature_as_csvfile)
         return data_loaded, validation_loaded, args
     elif mode == 'predict':
         return data_loaded, args
@@ -281,14 +289,14 @@ if __name__ == '__main__':
 
     # load model
     model_loaded, model_num_epoch = load_model(args, contexts, data_train)
-
     # if mode is 'train', it trains the model
     if mode == 'train':
         if is_bucketing:
             module = STTBucketingModule(
                 sym_gen=model_loaded,
                 default_bucket_key=data_train.default_bucket_key,
-                context=contexts)
+                context=contexts
+                )
         else:
             data_names = [x[0] for x in data_train.provide_data]
             label_names = [x[0] for x in data_train.provide_label]
@@ -313,7 +321,8 @@ if __name__ == '__main__':
             model = STTBucketingModule(
                 sym_gen=model_loaded,
                 default_bucket_key=data_train.default_bucket_key,
-                context=contexts)
+                context=contexts
+                )
 
             model.bind(data_shapes=data_train.provide_data,
                        label_shapes=data_train.provide_label,
@@ -331,8 +340,11 @@ if __name__ == '__main__':
                 model_loaded.forward(data_batch, is_train=False)
                 model_loaded.update_metric(eval_metric, data_batch.label)
         else:
-            model_loaded.score(eval_data=data_train, num_batch=None,
-                               eval_metric=eval_metric, reset=True)
+            #model_loaded.score(eval_data=data_train, num_batch=None,
+            #                   eval_metric=eval_metric, reset=True)
+            for nbatch, data_batch in enumerate(data_train):
+                model_loaded.forward(data_batch, is_train=False)
+                model_loaded.update_metric(eval_metric, data_batch.label)
     else:
         raise Exception(
             'Define mode in the cfg file first. ' +

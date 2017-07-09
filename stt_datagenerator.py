@@ -229,7 +229,7 @@ class DataGenerator(object):
             k_samples (int): Use this number of samples for estimation
         """
         log = LogUtil().getlogger()
-        log.info("Starts sample normalize")
+        log.info("Calculating mean and std from samples")
         # if k_samples is negative then it goes through total dataset
         if k_samples < 0:
             audio_paths = self.audio_paths
@@ -259,4 +259,4 @@ class DataGenerator(object):
             generate_file_path(self.save_dir, self.model_name, 'feats_mean'), self.feats_mean)
         np.savetxt(
             generate_file_path(self.save_dir, self.model_name, 'feats_std'), self.feats_std)
-        log.info("End sample normalize")
+        log.info("End calculating mean and std from samples")

@@ -126,11 +126,13 @@ Run the following line after preparing the files.
 
 ***
 ## **Further more**
-You can prepare full LibriSpeech dataset by following the instruction on https://github.com/baidu-research/ba-dls-deepspeech
+You can prepare full LibriSpeech dataset by following the instruction on https://github.com/baidu-research/ba-dls-deepspeech  
+**Change flac_to_wav.sh script of baidu to flac_to_wav.sh in repository to avoid bug**
 ```bash
 git clone https://github.com/baidu-research/ba-dls-deepspeech
 cd ba-dls-deepspeech
 ./download.sh
+cp -f /path/to/example/flac_to_wav.sh ./
 ./flac_to_wav.sh
 python create_desc_json.py /path/to/ba-dls-deepspeech/LibriSpeech/train-clean-100 train_corpus.json
 python create_desc_json.py /path/to/ba-dls-deepspeech/LibriSpeech/dev-clean validation_corpus.json

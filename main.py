@@ -81,9 +81,10 @@ def load_data(args):
         val_json = args.config.get('data', 'val_json')
         datagen = DataGenerator(save_dir=save_dir, model_name=model_name)
         datagen.load_train_data(data_json, max_duration=max_duration)
-        if is_bi_graphemes and overwrite_bi_graphemes_dictionary:
-            load_labelutil(labelUtil=labelUtil, is_bi_graphemes=False, language=language) 
-            generate_bi_graphemes_dictionary(datagen.train_texts)
+        if is_bi_graphemes:
+            if not os.path.isfile("resources/unicodemap_en_baidu_bi_graphemes.csv") or overwrite_bi_graphemes_dictionary:
+                load_labelutil(labelUtil=labelUtil, is_bi_graphemes=False, language=language) 
+                generate_bi_graphemes_dictionary(datagen.train_texts)
         load_labelutil(labelUtil=labelUtil, is_bi_graphemes=is_bi_graphemes, language=language)
         args.config.set('arch', 'n_classes', str(labelUtil.get_count()))
 

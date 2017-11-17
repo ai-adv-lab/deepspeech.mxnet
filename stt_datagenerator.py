@@ -3,13 +3,14 @@ from __future__ import absolute_import, division, print_function
 import json
 import random
 import numpy as np
+import math
 from stt_utils import calc_feat_dim, spectrogram_from_file
 
 from config_util import generate_file_path
 from log_util import LogUtil
 from label_util import LabelUtil
 from stt_bi_graphemes_util import generate_bi_graphemes_label
-from multiprocessing import cpu_count, Process, Manager
+from multiprocessing import cpu_count, Process, Manager, Pool
 
 class DataGenerator(object):
     def __init__(self, save_dir, model_name, step=10, window=20, max_freq=8000, desc_file=None):
@@ -239,15 +240,30 @@ class DataGenerator(object):
             k_samples = min(k_samples, len(self.train_audio_paths))
             samples = self.rng.sample(self.train_audio_paths, k_samples)
             audio_paths = samples
+        num_processes = cpu_count()
+        if num_processes < k_samples:
+            raise Exception("normalize_target_k is smaller than num_processes." +
+                            "Please set normalize_target_k larger than num_processes("
+                            + str(num_processes)+")")
+        pool = Pool(processes=cpu_count())
         manager = Manager()
         return_dict = manager.dict()
-        jobs = []
-        for threadIndex in range(cpu_count()):
-            proc = Process(target=self.preprocess_sample_normalize, args=(threadIndex, audio_paths, overwrite, return_dict))
-            jobs.append(proc)
-            proc.start()
-        for proc in jobs:
-            proc.join()
+
+        def split_into_size_n(l, n):
+            """ Yield n sized list from input list
+            :param l: input list
+            :param n: size to divide
+            :return: n-sized list of list
+            """
+            for i in range(0, len(l), n):
+                yield l[i:i + n]
+
+        audio_paths_split = split_into_size_n(audio_paths, int(math.ceil(float(len(audio_paths))/float(num_processes))))
+        for threadIndex in range(num_processes):
+            pool.apply_async(target=self.preprocess_sample_normalize,
+                             args=(threadIndex, audio_paths_split[threadIndex], overwrite, return_dict))
+        pool.close()
+        pool.join()
 
         feat = np.sum(np.vstack([item['feat'] for item in return_dict.values()]), axis=0)
         count = sum([item['count'] for item in return_dict.values()])

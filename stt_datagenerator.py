@@ -205,7 +205,7 @@ class DataGenerator(object):
         return self.iterate(self.val_audio_paths, self.val_texts,
                             minibatch_size)
 
-    def preprocess_sample_normalize(self, threadIndex, audio_paths, overwrite, return_dict):
+    def preprocess_sample_normalize(self, thread_index, audio_paths, overwrite, return_dict):
         if len(audio_paths) > 0:
             audio_clip = audio_paths[0]
             feat = self.featurize(audio_clip=audio_clip, overwrite=overwrite)
@@ -222,7 +222,7 @@ class DataGenerator(object):
                         (feat_squared, next_feat_squared)).reshape(-1, dim)
                     feat_squared = np.sum(feat_squared_vertically_stacked, axis=0, keepdims=True)
                     count += float(next_feat.shape[0])
-            return_dict[threadIndex] = {'feat': feat, 'feat_squared': feat_squared, 'count': count}
+            return_dict[thread_index] = {'feat': feat, 'feat_squared': feat_squared, 'count': count}
 
     def sample_normalize(self, k_samples=1000, overwrite=False):
         """ Estimate the mean and std of the features from the training set
@@ -240,33 +240,26 @@ class DataGenerator(object):
             k_samples = min(k_samples, len(self.train_audio_paths))
             samples = self.rng.sample(self.train_audio_paths, k_samples)
             audio_paths = samples
-        num_processes = cpu_count()
-        if num_processes < k_samples:
-            raise Exception("normalize_target_k is smaller than num_processes." +
-                            "Please set normalize_target_k larger than num_processes("
-                            + str(num_processes)+")")
-        pool = Pool(processes=cpu_count())
         manager = Manager()
         return_dict = manager.dict()
+        jobs = []
+        num_processes = min(len(audio_paths), cpu_count())
+        split_size = int(math.ceil(float(len(audio_paths)) / float(num_processes)))
+        audio_paths_split = []
+        for i in range(0, len(audio_paths), split_size):
+            audio_paths_split.append(audio_paths[i:i + split_size])
 
-        def split_into_size_n(l, n):
-            """ Yield n sized list from input list
-            :param l: input list
-            :param n: size to divide
-            :return: n-sized list of list
-            """
-            for i in range(0, len(l), n):
-                yield l[i:i + n]
-
-        audio_paths_split = split_into_size_n(audio_paths, int(math.ceil(float(len(audio_paths))/float(num_processes))))
-        for threadIndex in range(num_processes):
-            pool.apply_async(target=self.preprocess_sample_normalize,
-                             args=(threadIndex, audio_paths_split[threadIndex], overwrite, return_dict))
-        pool.close()
-        pool.join()
+        for thread_index in range(num_processes):
+            proc = Process(target=self.preprocess_sample_normalize,
+                           args=(thread_index, audio_paths_split[thread_index], overwrite, return_dict))
+            jobs.append(proc)
+            proc.start()
+        for proc in jobs:
+            proc.join()
 
         feat = np.sum(np.vstack([item['feat'] for item in return_dict.values()]), axis=0)
         count = sum([item['count'] for item in return_dict.values()])
+        print(feat, count)
         feat_squared = np.sum(np.vstack([item['feat_squared'] for item in return_dict.values()]), axis=0)
 
         self.feats_mean = feat / float(count)

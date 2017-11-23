@@ -4,19 +4,18 @@
 """
 architecture file for deep speech 2 model
 """
-import argparse
 import json
 import math
-
+import argparse
 import mxnet as mx
-from layer.batchnorm import batchnorm
-from layer.conv import conv
-from layer.fc import sequence_fc
-from layer.gru import bi_gru_unroll, gru_unroll
-from layer.lstm import bi_lstm_unroll
-from layer.slice import slice_symbol_to_seq_symobls
 
-from layer.warpctc import warpctc_layer
+from stt_layer_batchnorm import batchnorm
+from stt_layer_conv import conv
+from stt_layer_fc import sequence_fc
+from stt_layer_gru import bi_gru_unroll, gru_unroll
+from stt_layer_lstm import bi_lstm_unroll
+from stt_layer_slice import slice_symbol_to_seq_symobls
+from stt_layer_warpctc import warpctc_layer
 
 
 def prepare_data(args):
@@ -134,21 +133,24 @@ def arch(args, seq_len=None):
                                      num_hidden_lstm_list=num_hidden_rnn_list,
                                      num_lstm_layer=num_rnn_layer,
                                      dropout=0.,
-                                     is_batchnorm=is_batchnorm)
+                                     is_batchnorm=is_batchnorm,
+                                     is_bucketing=is_bucketing)
             elif rnn_type == "gru":
                 net = gru_unroll(net=net,
                                  seq_len=seq_len_after_conv_layer2,
                                  num_hidden_gru_list=num_hidden_rnn_list,
                                  num_gru_layer=num_rnn_layer,
                                  dropout=0.,
-                                 is_batchnorm=is_batchnorm)
+                                 is_batchnorm=is_batchnorm,
+                                 is_bucketing=is_bucketing)
             elif rnn_type == "bigru":
                 net = bi_gru_unroll(net=net,
                                     seq_len=seq_len_after_conv_layer2,
                                     num_hidden_gru_list=num_hidden_rnn_list,
                                     num_gru_layer=num_rnn_layer,
                                     dropout=0.,
-                                    is_batchnorm=is_batchnorm)
+                                    is_batchnorm=is_batchnorm,
+                                    is_bucketing=is_bucketing)
             else:
                 raise Exception('rnn_type should be one of the followings, bilstm,gru,bigru')
 
@@ -201,4 +203,3 @@ class BucketingArch(object):
 
     def get_sym_gen(self):
         return self.sym_gen
-

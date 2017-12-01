@@ -20,3 +20,4 @@ def warpctc_layer(net, label, num_label, seq_len, character_classes_count):
     net = mx.sym.WarpCTC(data=net, label=label, label_length=num_label, input_length=seq_len)
 
     return net
+

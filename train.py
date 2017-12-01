@@ -8,6 +8,7 @@ from stt_metric import STTMetric
 #tensorboard setting
 from tensorboard import SummaryWriter
 import json
+from stt_bucketing_module import STTBucketingModule
 
 
 
@@ -63,11 +64,31 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
     optimizer_params_dictionary = json.loads(args.config.get('optimizer', 'optimizer_params_dictionary'))
     kvstore_option = args.config.get('common', 'kvstore_option')
     n_epoch=begin_epoch
+    is_bucketing = args.config.getboolean('arch', 'is_bucketing')
 
     if clip_gradient == 0:
         clip_gradient = None
+    if is_bucketing and mode == 'load':
+        model_file = args.config.get('common', 'model_file')
+        model_name = os.path.splitext(model_file)[0]
+        model_num_epoch = int(model_name[-4:])
 
-    module.bind(data_shapes=data_train.provide_data,
+        model_path = 'checkpoints/' + str(model_name[:-5])
+        symbol, data_names, label_names = module(1600)
+        model = STTBucketingModule(
+            sym_gen=module,
+            default_bucket_key=data_train.default_bucket_key,
+            context=contexts)
+        data_train.reset()
+
+        model.bind(data_shapes=data_train.provide_data,
+                   label_shapes=data_train.provide_label,
+                   for_training=True)
+        _, arg_params, aux_params = mx.model.load_checkpoint(model_path, model_num_epoch)
+        model.set_params(arg_params, aux_params)
+        module = model
+    else:
+        module.bind(data_shapes=data_train.provide_data,
                 label_shapes=data_train.provide_label,
                 for_training=True)
 
@@ -90,19 +111,12 @@ def do_training(args, module, data_train, data_val, begin_epoch=0):
         reset_optimizer(force_init=True)
     else:
         reset_optimizer(force_init=False)
+        data_train.reset()
+        data_train.is_first_epoch = True
 
     #tensorboard setting
     tblog_dir = args.config.get('common', 'tensorboard_log_dir')
     summary_writer = SummaryWriter(tblog_dir)
-
-
-    if mode == "train":
-        sort_by_duration = True
-    else:
-        sort_by_duration = False
-
-    if not sort_by_duration:
-        data_train.reset()
 
     while True:
 

@@ -232,7 +232,7 @@ class DataGenerator(object):
         log.info("Calculating mean and std from samples")
         # if k_samples is negative then it goes through total dataset
         if k_samples < 0:
-            audio_paths = self.audio_paths
+            audio_paths = self.train_audio_paths
 
         # using sample
         else:

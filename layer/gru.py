@@ -106,8 +106,6 @@ def gru_unroll(net, num_gru_layer, seq_len, num_hidden_gru_list, dropout_rate=0.
 
             # stack GRU
             for i in range(num_gru_layer):
-                if dropout_rate > 0.:
-                    hidden = mx.sym.Dropout(data=hidden, p=dropout_rate)
                 if is_batchnorm:
                     next_state = gru(num_hidden_gru_list[i], indata=hidden,
                                      prev_state=last_states[i],
